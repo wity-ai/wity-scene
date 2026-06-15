@@ -13,14 +13,15 @@
     "staging_host_path": "/home/ankur/hais/scene-graph-docs/"
   },
   "scripts": {
-    "build":        "npm run build -w packages/scene-core && npm run build -w packages/scene-headless && npm run build -w packages/scene-player",
-    "docs:dev":     "vitepress dev docs",
-    "docs:build":   "vitepress build docs",
+    "build": "npm run build -w packages/scene-core && npm run build -w packages/scene-headless && npm run build -w packages/scene-player",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
-    "docs:deploy":  "node scripts/deploy-docs.js"
+    "docs:deploy": "node scripts/deploy-docs.js"
   },
   "devDependencies": {
-    "rollup":    "^4.0.0",
+    "@rollup/plugin-terser": "^1.0.0",
+    "rollup": "^4.0.0",
     "vitepress": "^1.6.4"
   }
 }

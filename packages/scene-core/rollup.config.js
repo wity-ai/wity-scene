@@ -1,10 +1,23 @@
-export default {
-  input: 'index.js',
-  output: {
-    file:      'dist/scene-core.esm.js',
-    format:    'es',
-    sourcemap: true,
+import terser from '@rollup/plugin-terser';
+
+export default [
+  // Unminified ESM — for bundlers (Vite, webpack, rollup)
+  {
+    input: 'index.js',
+    output: {
+      file:      'dist/scene-core.esm.js',
+      format:    'es',
+      sourcemap: true,
+    },
   },
-  // @xmldom/xmldom is loaded via runtime require() shim — not a static import,
-  // so rollup never sees it. No external declarations needed.
-};
+  // Minified ESM — for CDN / direct browser use
+  {
+    input: 'index.js',
+    output: {
+      file:      'dist/scene-core.esm.min.js',
+      format:    'es',
+      sourcemap: true,
+      plugins:   [terser()],
+    },
+  },
+];
