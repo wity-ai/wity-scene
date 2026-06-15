@@ -1,0 +1,408 @@
+# wity-scene — Full Documentation
+
+Version: scene-core v1.0.0
+
+---
+
+## QUICK REFERENCE — read this first
+
+### Core model
+
+A wity-scene document is a **pure function of time**:
+
+```
+f(scene: WityScene, t: number) → ComputedFrame
+```
+
+- `scene` is parsed from XML (immutable)
+- `t` is a time in seconds, clamped to `[0, scene.dur]`
+- `ComputedFrame` is the complete render state — pixel positions, resolved props, effective opacity
+
+No interpolation state. No playback timers. Call `evaluate(scene, t)` at any time, in any order.
+
+### Install
+
+```bash
+npm install @wity/scene-core
+# Node.js only (optional XML peer):
+npm install @xmldom/xmldom
+```
+
+### Import
+
+```js
+import { parse, evaluate, serialize, validate, resolveUnit } from '@wity/scene-core';
+// or:
+import { parse, evaluate } from '@wity/scene';
+```
+
+### Minimal example
+
+```js
+const scene = parse(`
+  <wity-scene version="1.0" width="1920" height="1080" dur="6.0">
+    <ws-layer id="title" z="10">
+      <ws-text x="50%" y="40%" anchor="center"
+               font-size="5%" color="#ffffff"
+               animate-in="fade-up" animate-dur="0.6">
+        Opening Night
+      </ws-text>
+    </ws-layer>
+  </wity-scene>
+`);
+
+const frame = evaluate(scene, 1.0);
+// frame.elements → [{id, tag, x, y, opacity, visible, props, content}, ...]
+```
+
+---
+
+## SCHEMA v1.0
+
+### Document structure
+
+```
+WityScene
+└── WsLayer[]           z-ordered planes
+    └── WsElement[]     ws-text | ws-rect | ws-image
+```
+
+### Root element
+
+```xml
+<wity-scene version="1.0" width="1920" height="1080" dur="8.0">
+```
+
+| Attribute | Type   | Required |
+|-----------|--------|----------|
+| version   | string | yes — must be "1.0" |
+| width     | number | yes — canvas width px |
+| height    | number | yes — canvas height px |
+| dur       | number | yes — total duration seconds |
+
+### Layers
+
+```xml
+<ws-layer id="title" z="10" opacity="1">
+```
+
+| Attribute | Default | Description |
+|-----------|---------|-------------|
+| id        | —       | unique layer id |
+| z         | 0       | layer stacking order |
+| opacity   | 1       | layer-level opacity, multiplied with element opacity |
+
+### Common element attributes (all element types)
+
+| XML attribute | Object field | Default    | Description |
+|---------------|-------------|------------|-------------|
+| id            | id          | auto       | unique element id |
+| x             | x           | 0          | horizontal position (unit value) |
+| y             | y           | 0          | vertical position (unit value) |
+| anchor        | anchor      | top-left   | origin point for x/y |
+| begin         | begin       | 0          | start time seconds |
+| dur           | dur         | Infinity   | duration seconds |
+| z             | z           | 0          | z-index within layer |
+| opacity       | opacity     | 1          | element opacity (0–1) |
+| animate-in    | animateIn   | none       | entrance animation |
+| animate-out   | animateOut  | none       | exit animation |
+| animate-dur   | animateDur  | 0.4        | anim duration seconds |
+
+#### anchor values
+
+`top-left` · `top` · `top-right` · `left` · `center` · `right` · `bottom-left` · `bottom` · `bottom-right`
+
+#### animation values
+
+`none` · `fade` · `fade-up` · `fade-down` · `slide-left` · `slide-right`
+
+Slide animations travel 40px. Entrance easing: easeOutCubic. Exit easing: easeInCubic.
+
+#### unit values
+
+| Input    | Meaning |
+|----------|---------|
+| `"50%"`  | 50% of canvas width (for x/width) or height (for y/height) |
+| `"120px"`| 120px |
+| `120`    | 120px |
+
+### `<ws-text>`
+
+```xml
+<ws-text x="50%" y="40%" anchor="center"
+         font-size="5%" font-weight="bold" color="#ffffff"
+         animate-in="fade-up" animate-dur="0.6">
+  Opening Night
+</ws-text>
+```
+
+| XML attribute  | Default      |
+|----------------|--------------|
+| font-size      | 3% (of min(width, height)) |
+| font-family    | sans-serif |
+| font-weight    | normal |
+| color          | #ffffff |
+| text-align     | center |
+| line-height    | 1.4 |
+| max-width      | (none) |
+| letter-spacing | 0 |
+
+Text content is the element's text node.
+
+### `<ws-rect>`
+
+```xml
+<ws-rect x="0" y="0" width="100%" height="100%" fill="#000000" opacity="0.6" />
+```
+
+| XML attribute | Default     |
+|---------------|-------------|
+| width         | 100% |
+| height        | 100% |
+| fill          | transparent |
+| stroke        | (none) |
+| stroke-width  | 1 |
+| rx            | 0 |
+
+### `<ws-image>`
+
+```xml
+<ws-image src="https://..." width="100%" height="100%" fit="cover" />
+```
+
+| XML attribute | Default  |
+|---------------|----------|
+| src           | required |
+| width         | 100% |
+| height        | 100% |
+| fit           | cover — values: cover · contain · fill · none |
+
+### Full example — film credits
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<wity-scene version="1.0" width="1920" height="1080" dur="8.0">
+
+  <ws-layer id="scrim" z="0">
+    <ws-rect x="0" y="0" width="100%" height="100%"
+             fill="#000000" opacity="0.65" />
+  </ws-layer>
+
+  <ws-layer id="title" z="10">
+    <ws-text x="50%" y="38%" anchor="center"
+             font-size="6%" font-weight="bold" color="#ffffff"
+             animate-in="fade-up" animate-dur="0.7">
+      Nocturne
+    </ws-text>
+    <ws-text x="50%" y="50%" anchor="center"
+             font-size="2.5%" color="#cccccc" letter-spacing="0.2em"
+             animate-in="fade" begin="0.4" animate-dur="0.6">
+      A film by Apratim
+    </ws-text>
+  </ws-layer>
+
+</wity-scene>
+```
+
+---
+
+## API REFERENCE
+
+### parse(xml)
+
+```js
+parse(xml: string): WityScene
+```
+
+Parse a wity-scene XML string into a WityScene object.
+Throws if XML is malformed or root element is not `<wity-scene>`.
+Browser: native DOMParser. Node.js: @xmldom/xmldom (optional peer dep).
+ID counter resets per call — auto-assigned ids are stable within a single parse.
+
+### evaluate(scene, t)
+
+```js
+evaluate(scene: WityScene, t: number): ComputedFrame
+```
+
+Evaluate a scene at time t (clamped to [0, scene.dur]).
+Pure function — no mutation, no side effects.
+Elements in ComputedFrame are sorted by effective z ascending (painters algorithm).
+Effective z = layer.z × 1000 + element.z.
+
+Animation offsets are baked into x and y — renderer receives final pixel position.
+
+### serialize(scene)
+
+```js
+serialize(scene: WityScene): string
+```
+
+Serialize a WityScene to canonical XML. Round-trips cleanly with parse().
+Omits attributes equal to their defaults.
+
+### validate(scene)
+
+```js
+validate(scene: WityScene): { valid: boolean, errors: string[], warnings: string[] }
+```
+
+Structural validation without throwing. Checks root types, layer types, element types,
+unit value forms, opacity range [0,1], enum membership, id uniqueness across the scene.
+
+### resolveUnit(value, containerSize)
+
+```js
+resolveUnit(value: string | number, containerSize: number): number
+```
+
+Resolve a unit value to pixels.
+```js
+resolveUnit('50%', 1920)   // 960
+resolveUnit('120px', 0)    // 120
+resolveUnit(80, 0)         // 80
+```
+
+---
+
+## TYPES
+
+### WityScene
+
+```js
+{ version: string, width: number, height: number, dur: number, layers: WsLayer[] }
+```
+
+### WsLayer
+
+```js
+{ id: string, z: number, opacity: number, elements: WsElement[] }
+```
+
+### WsElement = WsText | WsRect | WsImage
+
+All share WsElementBase: `{ id, x, y, anchor, begin, dur, z, opacity, animateIn, animateOut, animateDur }`
+
+```js
+WsText:  WsElementBase & { tag: 'ws-text',  content, fontSize, fontFamily, fontWeight, color, textAlign, lineHeight, maxWidth, letterSpacing }
+WsRect:  WsElementBase & { tag: 'ws-rect',  width, height, fill, stroke, strokeWidth, rx }
+WsImage: WsElementBase & { tag: 'ws-image', src, width, height, fit }
+```
+
+### ComputedFrame
+
+```js
+{ t: number, width: number, height: number, elements: ComputedElement[] }
+```
+
+### ComputedElement
+
+```js
+{
+  id:      string,
+  tag:     'ws-text' | 'ws-rect' | 'ws-image',
+  x:       number,          // px, anchor-adjusted + animation offset
+  y:       number,
+  opacity: number,          // element × layer × animation
+  z:       number,          // layer.z * 1000 + element.z
+  visible: boolean,         // false outside [begin, begin+dur]
+  props:   {                // tag-specific, all units resolved to px
+    // ws-text:  fontSize, fontFamily, fontWeight, color, textAlign, lineHeight, maxWidth, letterSpacing
+    // ws-rect:  width, height, fill, stroke, strokeWidth, rx
+    // ws-image: src, width, height, fit
+  },
+  content: string | null,   // text content for ws-text; null otherwise
+}
+```
+
+---
+
+## RENDERING
+
+### HTML/CSS
+
+```js
+function render(container, frame) {
+  container.innerHTML = '';
+  for (const el of frame.elements) {
+    if (!el.visible) continue;
+    const div = document.createElement('div');
+    div.style.position = 'absolute';
+    div.style.left     = `${el.x}px`;
+    div.style.top      = `${el.y}px`;
+    div.style.opacity  = String(el.opacity);
+    div.style.zIndex   = String(el.z);
+
+    if (el.tag === 'ws-text') {
+      div.style.fontSize   = `${el.props.fontSize}px`;
+      div.style.color      = el.props.color;
+      div.style.fontFamily = el.props.fontFamily;
+      div.style.fontWeight = el.props.fontWeight;
+      div.style.textAlign  = el.props.textAlign;
+      div.textContent      = el.content ?? '';
+    }
+    if (el.tag === 'ws-rect') {
+      div.style.width      = `${el.props.width}px`;
+      div.style.height     = `${el.props.height}px`;
+      div.style.background = el.props.fill;
+      if (el.props.rx) div.style.borderRadius = `${el.props.rx}px`;
+    }
+    container.appendChild(div);
+  }
+}
+```
+
+### Canvas 2D
+
+```js
+function renderCanvas(ctx, frame) {
+  ctx.clearRect(0, 0, frame.width, frame.height);
+  for (const el of frame.elements) {
+    if (!el.visible) continue;
+    ctx.globalAlpha = el.opacity;
+    if (el.tag === 'ws-rect') {
+      ctx.fillStyle = el.props.fill;
+      ctx.fillRect(el.x, el.y, el.props.width, el.props.height);
+    }
+    if (el.tag === 'ws-text') {
+      ctx.fillStyle = el.props.color;
+      ctx.font      = `${el.props.fontWeight} ${el.props.fontSize}px ${el.props.fontFamily}`;
+      ctx.textAlign = el.props.textAlign;
+      ctx.fillText(el.content ?? '', el.x, el.y);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+```
+
+### requestAnimationFrame loop
+
+```js
+let start = null;
+function tick(ts) {
+  if (!start) start = ts;
+  const t = (ts - start) / 1000;
+  render(container, evaluate(scene, t));
+  if (t < scene.dur) requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+```
+
+### Node.js / FFmpeg (frame-by-frame compilation)
+
+```js
+import { parse, evaluate } from '@wity/scene-core';
+import { createCanvas }    from 'canvas';   // node-canvas
+
+const scene  = parse(xmlString);
+const fps    = 30;
+const frames = Math.ceil(scene.dur * fps);
+
+for (let i = 0; i < frames; i++) {
+  const t      = i / fps;
+  const frame  = evaluate(scene, t);
+  const canvas = createCanvas(frame.width, frame.height);
+  renderCanvas(canvas.getContext('2d'), frame);
+  // → write canvas to PNG → pipe to FFmpeg
+}
+```

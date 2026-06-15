@@ -1,0 +1,24 @@
+{
+  "name": "wity-scene-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": [
+    "packages/scene-core",
+    "packages/scene-headless",
+    "packages/scene"
+  ],
+  "config": {
+    "staging_host_name": "gcp-vritti-dogfooding",
+    "staging_host_path": "/home/ankur/hais/scene-graph-docs/"
+  },
+  "scripts": {
+    "docs:dev":     "vitepress dev docs",
+    "docs:build":   "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "docs:deploy":  "node scripts/deploy-docs.js"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.4"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "@wity/scene-core",
+  "version": "1.0.0",
+  "description": "Headless, isomorphic XML scene-graph library. Parse, evaluate, serialize, and validate wity-scene documents. Zero DOM dependencies.",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "keywords": ["scene-graph", "xml", "animation", "compositing", "headless", "isomorphic"],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

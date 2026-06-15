@@ -1,0 +1,331 @@
+# wity-scene — API Quick Reference
+
+Pure API surface. No prose. Signatures, types, constants, and schema attributes.
+
+Version: scene-core v1.0.0
+
+---
+
+## IMPORT PATH
+
+```js
+import {
+  parse, evaluate, serialize, validate, resolveUnit,
+  SCHEMA_VERSION, ANIMATE_IN_VALUES, ANIMATE_OUT_VALUES, ANCHOR_VALUES, ELEMENT_TAGS,
+} from '@wity/scene-core';
+
+// or convenience wrapper:
+import { parse, evaluate, serialize, validate } from '@wity/scene';
+```
+
+---
+
+## parse(xml)
+
+```js
+parse(xml: string): WityScene
+```
+
+- Throws if XML is malformed or root element is not `<wity-scene>`
+- Resets internal element ID counter per call
+- Browser: uses native `DOMParser`
+- Node.js: requires `@xmldom/xmldom` peer dep
+
+---
+
+## evaluate(scene, t)
+
+```js
+evaluate(scene: WityScene, t: number): ComputedFrame
+```
+
+- `t` clamped to `[0, scene.dur]`
+- Pure function — no mutation, no side effects
+- Elements sorted by effective z ascending (painters algorithm)
+- Effective z = `layer.z * 1000 + element.z`
+
+---
+
+## serialize(scene)
+
+```js
+serialize(scene: WityScene): string
+```
+
+- Returns `<?xml version="1.0" encoding="UTF-8"?>\n<wity-scene ...>`
+- Omits attributes equal to their defaults
+- Round-trips cleanly with `parse()`
+
+---
+
+## validate(scene)
+
+```js
+validate(scene: WityScene): { valid: boolean, errors: string[], warnings: string[] }
+```
+
+- Never throws — returns result object
+- Checks: root types, layer types, element types, unit values, opacity range, enum membership, id uniqueness
+
+---
+
+## resolveUnit(value, containerSize)
+
+```js
+resolveUnit(value: string | number, containerSize: number): number
+```
+
+```js
+resolveUnit('50%', 1920)   // → 960
+resolveUnit('120px', 0)    // → 120
+resolveUnit(80, 0)         // → 80
+resolveUnit('80', 0)       // → 80
+```
+
+---
+
+## Constants
+
+```js
+SCHEMA_VERSION     // '1.0'
+
+ANIMATE_IN_VALUES  // ['none', 'fade', 'fade-up', 'fade-down', 'slide-left', 'slide-right']
+ANIMATE_OUT_VALUES // ['none', 'fade', 'fade-up', 'fade-down', 'slide-left', 'slide-right']
+
+ANCHOR_VALUES      // ['top-left', 'top', 'top-right', 'left', 'center', 'right',
+                   //  'bottom-left', 'bottom', 'bottom-right']
+
+ELEMENT_TAGS       // ['ws-text', 'ws-rect', 'ws-image']
+```
+
+---
+
+## Types
+
+### WityScene
+
+```js
+{
+  version: string,    // '1.0'
+  width:   number,    // canvas width px
+  height:  number,    // canvas height px
+  dur:     number,    // total duration seconds
+  layers:  WsLayer[],
+}
+```
+
+### WsLayer
+
+```js
+{
+  id:       string,
+  z:        number,   // layer z-index
+  opacity:  number,   // 0–1, multiplied with element opacity
+  elements: WsElement[],
+}
+```
+
+### WsElementBase (common to all elements)
+
+```js
+{
+  id:         string,
+  x:          string | number,   // unit value
+  y:          string | number,
+  anchor:     AnchorValue,
+  begin:      number,            // start time seconds (default 0)
+  dur:        number,            // duration seconds; Infinity = full scene
+  z:          number,
+  opacity:    number,            // 0–1
+  animateIn:  AnimateValue,
+  animateOut: AnimateValue,
+  animateDur: number,            // seconds (default 0.4)
+}
+```
+
+### WsText
+
+```js
+WsElementBase & {
+  tag:           'ws-text',
+  content:       string,
+  fontSize:      string | number,
+  fontFamily:    string,
+  fontWeight:    string,
+  color:         string,
+  textAlign:     'left' | 'center' | 'right',
+  lineHeight:    number,
+  maxWidth:      string | number | null,
+  letterSpacing: string | number,
+}
+```
+
+### WsRect
+
+```js
+WsElementBase & {
+  tag:         'ws-rect',
+  width:       string | number,
+  height:      string | number,
+  fill:        string,
+  stroke:      string | null,
+  strokeWidth: number,
+  rx:          number,
+}
+```
+
+### WsImage
+
+```js
+WsElementBase & {
+  tag:    'ws-image',
+  src:    string,
+  width:  string | number,
+  height: string | number,
+  fit:    'cover' | 'contain' | 'fill' | 'none',
+}
+```
+
+### ComputedFrame
+
+```js
+{
+  t:        number,
+  width:    number,
+  height:   number,
+  elements: ComputedElement[],   // sorted by z ascending
+}
+```
+
+### ComputedElement
+
+```js
+{
+  id:      string,
+  tag:     'ws-text' | 'ws-rect' | 'ws-image',
+  x:       number,    // pixels; anchor-adjusted + animation translate offset
+  y:       number,
+  opacity: number,    // element.opacity × layer.opacity × animation opacity
+  z:       number,    // layer.z * 1000 + element.z
+  visible: boolean,   // false outside [begin, begin+dur]
+  props:   object,    // tag-specific resolved props (all units → px)
+  content: string | null,   // text content (ws-text only)
+}
+```
+
+### ComputedElement.props by tag
+
+**ws-text**
+```js
+{
+  fontSize:      number,   // px
+  fontFamily:    string,
+  fontWeight:    string,
+  color:         string,
+  textAlign:     'left' | 'center' | 'right',
+  lineHeight:    number,
+  maxWidth:      number | null,
+  letterSpacing: number,   // px
+}
+```
+
+**ws-rect**
+```js
+{
+  width:       number,   // px
+  height:      number,
+  fill:        string,
+  stroke:      string | null,
+  strokeWidth: number,
+  rx:          number,
+}
+```
+
+**ws-image**
+```js
+{
+  src:    string,
+  width:  number,   // px
+  height: number,
+  fit:    'cover' | 'contain' | 'fill' | 'none',
+}
+```
+
+---
+
+## XML Schema — attribute defaults
+
+### `<wity-scene>`
+
+| Attribute | Type   | Required |
+|-----------|--------|----------|
+| version   | string | yes — "1.0" |
+| width     | number | yes |
+| height    | number | yes |
+| dur       | number | yes |
+
+### `<ws-layer>`
+
+| Attribute | Default |
+|-----------|---------|
+| id        | required |
+| z         | 0 |
+| opacity   | 1 |
+
+### Common element attributes
+
+| Attribute    | Default    |
+|--------------|------------|
+| id           | auto-assigned |
+| x            | 0 |
+| y            | 0 |
+| anchor       | top-left |
+| begin        | 0 |
+| dur          | Infinity |
+| z            | 0 |
+| opacity      | 1 |
+| animate-in   | none |
+| animate-out  | none |
+| animate-dur  | 0.4 |
+
+### `<ws-text>` attributes
+
+| Attribute      | Default      |
+|----------------|--------------|
+| font-size      | 3% |
+| font-family    | sans-serif |
+| font-weight    | normal |
+| color          | #ffffff |
+| text-align     | center |
+| line-height    | 1.4 |
+| max-width      | (none) |
+| letter-spacing | 0 |
+
+Text content is the element's text node.
+
+### `<ws-rect>` attributes
+
+| Attribute    | Default     |
+|--------------|-------------|
+| width        | 100% |
+| height       | 100% |
+| fill         | transparent |
+| stroke       | (none) |
+| stroke-width | 1 |
+| rx           | 0 |
+
+### `<ws-image>` attributes
+
+| Attribute | Default |
+|-----------|---------|
+| src       | required |
+| width     | 100% |
+| height    | 100% |
+| fit       | cover |
+
+---
+
+## Animation — slide distance
+
+Slide animations (`slide-left`, `slide-right`, `fade-up`, `fade-down`) translate by **40px**.
+Entrance easing: `easeOutCubic`. Exit easing: `easeInCubic`.

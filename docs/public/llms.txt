@@ -1,0 +1,58 @@
+# wity-scene
+
+A headless, isomorphic XML scene-graph library for spatial overlays and compositing. Deterministic: f(scene, t) → ComputedFrame. Zero runtime dependencies. Runs identically in browser and Node.js.
+
+Current version: scene-core v1.0.0 · scene v1.0.0
+Docs: https://www.wity.ai/stack/scene-graph/
+
+## Architecture
+
+Single core package with a thin re-export wrapper.
+
+```
+@wity/scene-core   — parse · evaluate · serialize · validate. Zero DOM (DOMParser is platform API).
+        ↓
+@wity/scene        — convenience re-export of scene-core
+```
+
+Import path:
+- `import { parse, evaluate, serialize, validate, resolveUnit } from '@wity/scene-core'`
+
+Core model: a scene document is a pure function of time. Call `evaluate(scene, t)` at any frame — no mutation, no playback state.
+
+## Quick start
+
+```js
+import { parse, evaluate } from '@wity/scene-core';
+
+const scene = parse(`
+  <wity-scene version="1.0" width="1920" height="1080" dur="6.0">
+    <ws-layer id="title" z="10">
+      <ws-text x="50%" y="40%" anchor="center"
+               font-size="5%" color="#ffffff"
+               animate-in="fade-up" animate-dur="0.6">
+        Opening Night
+      </ws-text>
+    </ws-layer>
+  </wity-scene>
+`);
+
+const frame = evaluate(scene, 1.0);  // ComputedFrame at t=1s
+
+for (const el of frame.elements) {
+  if (el.visible) console.log(el.tag, el.x, el.y, el.content);
+}
+```
+
+---
+
+## Documentation pages
+
+### Guides
+- [Overview](/guide/overview) — core model, document structure, rendering targets
+- [Schema v1.0](/guide/schema) — full XML attribute reference for all element types
+- [Rendering](/guide/rendering) — HTML/CSS and Canvas 2D renderer examples, ComputedFrame shape
+
+### API Reference
+- [@wity/scene-core](/packages/scene-core) — parse, evaluate, serialize, validate, resolveUnit, all types
+- [@wity/scene](/packages/scene) — re-export package
