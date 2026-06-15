@@ -123,7 +123,7 @@ export default defineConfig({
     ],
 
     footer: {
-      message: 'Part of the <a href="https://www.wity.ai">Wity AI</a> open-source stack · <a href="https://github.com/wity-ai/wity-scene">GitHub</a> · <a href="https://www.npmjs.com/package/@wity/scene-core">npm</a>',
+      message: 'Part of the <a href="https://www.wity.ai">Wity AI</a> open-source stack · <a href="https://github.com/wity-ai/wity-scene">GitHub</a>',
       copyright: '© 2026 Wity AI',
     },
   },
