@@ -1,0 +1,31 @@
+{
+  "name": "@wity/scene-player",
+  "version": "1.0.0",
+  "description": "Headless composition player for wity-scene. Drives evaluate(scene, t) at playback rate via RAF. Presentation-agnostic — wire any renderer to the 'frame' event.",
+  "type": "module",
+  "main":   "./dist/scene-player.esm.js",
+  "module": "./dist/scene-player.esm.js",
+  "exports": {
+    ".": {
+      "import":  "./dist/scene-player.esm.js",
+      "default": "./dist/scene-player.esm.js"
+    }
+  },
+  "files": ["dist", "index.js", "HeadlessPlayer.js"],
+  "scripts": {
+    "build": "rollup -c"
+  },
+  "keywords": ["scene-graph", "player", "headless", "playback", "compositing", "animation"],
+  "license": "MIT",
+  "peerDependencies": {
+    "@wity/scene-core":     ">=1.0.0",
+    "@wity/scene-headless": ">=1.0.0"
+  },
+  "devDependencies": {
+    "@wity/scene-core":     "*",
+    "@wity/scene-headless": "*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

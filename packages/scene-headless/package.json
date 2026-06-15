@@ -3,13 +3,24 @@
   "version": "1.0.0",
   "description": "Headless authoring state for wity-scene editors. Extensible primitives — open event bus, pluggable commands, registerable element types and snap strategies. Zero DOM, zero framework.",
   "type": "module",
-  "main": "./index.js",
+  "main":   "./dist/scene-headless.esm.js",
+  "module": "./dist/scene-headless.esm.js",
   "exports": {
-    ".": "./index.js"
+    ".": {
+      "import":  "./dist/scene-headless.esm.js",
+      "default": "./dist/scene-headless.esm.js"
+    }
+  },
+  "files": ["dist", "index.js", "core", "selection", "history", "transform", "snap", "timeline", "clipboard"],
+  "scripts": {
+    "build": "rollup -c"
   },
   "keywords": ["scene-graph", "authoring", "headless", "editor-state", "undo-redo", "selection"],
   "license": "MIT",
-  "dependencies": {
+  "peerDependencies": {
+    "@wity/scene-core": ">=1.0.0"
+  },
+  "devDependencies": {
     "@wity/scene-core": "*"
   },
   "publishConfig": {

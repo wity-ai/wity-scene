@@ -2,21 +2,86 @@
 
 Pure API surface. No prose. Signatures, types, constants, and schema attributes.
 
-Version: scene-core v1.0.0
+Version: scene-core v1.0.0 · scene-headless v1.0.0 · scene-player v1.0.0
 
 ---
 
-## IMPORT PATH
+## IMPORT PATHS
 
 ```js
+// Core — parse/evaluate/serialize/validate
 import {
   parse, evaluate, serialize, validate, resolveUnit,
   SCHEMA_VERSION, ANIMATE_IN_VALUES, ANIMATE_OUT_VALUES, ANCHOR_VALUES, ELEMENT_TAGS,
 } from '@wity/scene-core';
 
-// or convenience wrapper:
+// Headless player — drives evaluate() at playback rate
+import { HeadlessPlayer } from '@wity/scene-player';
+
+// Convenience re-export of scene-core
 import { parse, evaluate, serialize, validate } from '@wity/scene';
 ```
+
+---
+
+## HeadlessPlayer
+
+```js
+// Construction
+const player = new HeadlessPlayer({ fps?: number })   // default fps=60
+
+// Loading
+player.loadXml(xml: string): void          // parse + load
+player.loadScene(scene: WityScene): void   // load pre-parsed scene
+player.replaceXml(xml: string): void       // hot-swap; retains play/pause state
+
+// Playback
+player.play(): void
+player.pause(): void
+player.stop(): void                        // pause + seek to 0
+player.seek(t: number): void               // emits 'frame' immediately
+
+// State (readonly)
+player.currentTime: number
+player.duration:    number
+player.isPlaying:   boolean
+player.isLoaded:    boolean
+player.progress:    number                 // 0–1
+
+// Mutation — takes effect next frame (or immediately if paused)
+player.addLayer(data): string              → layerId
+player.updateLayer(id, patch): void
+player.removeLayer(id): void
+player.addElement(layerId, data): string   → elementId
+player.updateElement(id, patch): void
+player.removeElement(id): void
+
+// Serialization
+player.getXml(): string | null             // serialize current (mutated) scene
+
+// Advanced
+player.getStore(): SceneStore | null       // access authoring primitives
+
+// EventBus (inherited)
+player.on(event, handler): unsubFn
+player.once(event, handler): unsubFn
+player.off(event, handler): void
+player.emit(event, payload): void
+player.destroy(): void
+```
+
+### HeadlessPlayer events
+
+| Event | Payload |
+|---|---|
+| `'frame'` | `{ frame: ComputedFrame, t: number }` |
+| `'playback:started'` | `{ t: number }` |
+| `'playback:paused'` | `{ t: number }` |
+| `'playback:stopped'` | `{}` |
+| `'playback:ended'` | `{ t: number }` |
+| `'time:changed'` | `{ t: number }` |
+| `'scene:loaded'` | `{ scene: WityScene }` |
+| `'scene:mutated'` | `{ scene: WityScene }` |
 
 ---
 

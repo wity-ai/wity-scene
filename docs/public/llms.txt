@@ -1,26 +1,27 @@
 # wity-scene
 
-A headless, isomorphic XML scene-graph library for spatial overlays and compositing. Deterministic: f(scene, t) → ComputedFrame. Zero runtime dependencies. Runs identically in browser and Node.js.
+A headless XML scene-graph library for spatial overlays and compositing. Deterministic: f(scene, t) → ComputedFrame. Zero runtime dependencies. Runs in browser and Node.js.
 
-Current version: scene-core v1.0.0 · scene v1.0.0
+Current version: scene-core v1.0.0 · scene-headless v1.0.0 · scene-player v1.0.0 · scene v1.0.0
 Docs: https://www.wity.ai/stack/scene-graph/
 
 ## Architecture
 
-Single core package with a thin re-export wrapper.
-
 ```
-@wity/scene-core   — parse · evaluate · serialize · validate. Zero DOM (DOMParser is platform API).
+@wity/scene-core      — parse · evaluate · serialize · validate. Zero DOM.
         ↓
-@wity/scene        — convenience re-export of scene-core
+@wity/scene-headless  — authoring state: SceneStore, SelectionManager, HistoryManager,
+                        SnapState, TimelineState, Clipboard, commands. Zero DOM, zero framework.
+        ↓
+@wity/scene-player    — HeadlessPlayer: drives evaluate(scene,t) at playback rate via RAF.
+                        Presentation-agnostic — wire any renderer to the 'frame' event.
+        ↓
+@wity/scene           — convenience re-export of scene-core
 ```
-
-Import path:
-- `import { parse, evaluate, serialize, validate, resolveUnit } from '@wity/scene-core'`
 
 Core model: a scene document is a pure function of time. Call `evaluate(scene, t)` at any frame — no mutation, no playback state.
 
-## Quick start
+## Quick start — evaluate only
 
 ```js
 import { parse, evaluate } from '@wity/scene-core';
@@ -44,6 +45,25 @@ for (const el of frame.elements) {
 }
 ```
 
+## Quick start — HeadlessPlayer
+
+```js
+import { HeadlessPlayer } from '@wity/scene-player';
+
+const player = new HeadlessPlayer();
+player.loadXml(xml);
+
+player.on('frame', ({ frame }) => renderFrame(frame));
+player.play();
+
+// Mutations take effect on the next frame — no reload:
+player.updateElement(id, { src: videoUrl });
+player.updateLayer(layerId, { begin: 2.0, dur: 4.0 });
+
+// Persist after mutations:
+const xml = player.getXml();
+```
+
 ---
 
 ## Documentation pages
@@ -55,4 +75,5 @@ for (const el of frame.elements) {
 
 ### API Reference
 - [@wity/scene-core](/packages/scene-core) — parse, evaluate, serialize, validate, resolveUnit, all types
+- [@wity/scene-player](/packages/scene-player) — HeadlessPlayer: loadXml, play/pause/seek, mutation API, 'frame' events
 - [@wity/scene](/packages/scene) — re-export package

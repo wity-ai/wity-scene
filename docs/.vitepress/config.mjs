@@ -112,8 +112,9 @@ export default defineConfig({
       {
         text:  'Packages',
         items: [
-          { text: '@wity/scene-core', link: '/packages/scene-core' },
-          { text: '@wity/scene',      link: '/packages/scene' },
+          { text: '@wity/scene-core',     link: '/packages/scene-core' },
+          { text: '@wity/scene-headless', link: '/packages/scene-headless' },
+          { text: '@wity/scene-player',   link: '/packages/scene-player' },
         ],
       },
     ],

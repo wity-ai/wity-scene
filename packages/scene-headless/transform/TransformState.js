@@ -7,8 +7,6 @@
  * then pass ComputedElements into these functions.
  */
 
-import { resolveUnit } from '@wity/scene-core';
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /**

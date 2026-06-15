@@ -15,8 +15,7 @@
  *     and UI layers update only what changed
  */
 
-import { EventBus }      from './EventBus.js';
-import { ELEMENT_TAGS }  from '@wity/scene-core';
+import { EventBus } from './EventBus.js';
 
 // ─── Default element type configs ────────────────────────────────────────────
 

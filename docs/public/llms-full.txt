@@ -1,6 +1,6 @@
 # wity-scene — Full Documentation
 
-Version: scene-core v1.0.0
+Version: scene-core v1.0.0 · scene-headless v1.0.0 · scene-player v1.0.0
 
 ---
 
@@ -375,7 +375,7 @@ function renderCanvas(ctx, frame) {
 }
 ```
 
-### requestAnimationFrame loop
+### requestAnimationFrame loop (manual)
 
 ```js
 let start = null;
@@ -406,3 +406,96 @@ for (let i = 0; i < frames; i++) {
   // → write canvas to PNG → pipe to FFmpeg
 }
 ```
+
+---
+
+## HEADLESS PLAYER — @wity/scene-player
+
+`HeadlessPlayer` coordinates `SceneStore` + `TimelineState` + `evaluate()` into a single playback object. Emits `'frame'` on every RAF tick. Any renderer subscribes to `'frame'` and draws.
+
+```js
+import { HeadlessPlayer } from '@wity/scene-player';
+
+const player = new HeadlessPlayer();
+player.loadXml(xml);
+
+// Wire renderer — only needs 'frame'
+player.on('frame', ({ frame, t }) => renderCanvas(ctx, frame));
+player.on('playback:ended', () => showReplayButton());
+
+player.play();
+player.seek(2.5);    // emits 'frame' immediately — renderer stays in sync
+player.pause();
+```
+
+### Mutation at runtime
+
+```js
+// URL arrives from backend — next frame picks it up, no reload
+player.updateElement(videoElementId, { src: 'https://...' });
+
+// Reposition a layer in time
+player.updateLayer(layerId, { begin: 1.5, dur: 4.0 });
+
+// Add an overlay layer
+const lid = player.addLayer({ label: 'Lower Third', z: 20 });
+player.addElement(lid, {
+  tag: 'ws-text', content: 'Now Live',
+  x: '50%', y: '85%', anchor: 'center',
+  animateIn: 'fade', animateDur: 0.3,
+});
+
+// Hot-swap entire scene (e.g. live edit from authoring layer)
+player.replaceXml(updatedXml);  // retains play/pause state
+
+// Persist mutations
+const xml = player.getXml();
+```
+
+### HeadlessPlayer API
+
+```js
+// Loading
+player.loadXml(xml)          // parse + load from XML string
+player.loadScene(scene)      // load pre-parsed WityScene
+player.replaceXml(xml)       // hot-swap; retains play state
+
+// Playback
+player.play()
+player.pause()
+player.stop()                // pause + seek(0)
+player.seek(t)               // seek; emits 'frame' immediately
+
+// State
+player.currentTime           // seconds
+player.duration              // seconds
+player.isPlaying             // boolean
+player.isLoaded              // boolean
+player.progress              // 0–1
+
+// Mutation
+player.addLayer(data)             → layerId
+player.updateLayer(id, patch)
+player.removeLayer(id)
+player.addElement(layerId, data)  → elementId
+player.updateElement(id, patch)
+player.removeElement(id)
+
+// Serialization / advanced
+player.getXml()              // serialize current scene → XML
+player.getStore()            // raw SceneStore for history/snap/clipboard
+player.destroy()
+```
+
+### Events
+
+| Event | Payload |
+|---|---|
+| `'frame'` | `{ frame: ComputedFrame, t }` |
+| `'playback:started'` | `{ t }` |
+| `'playback:paused'` | `{ t }` |
+| `'playback:stopped'` | `{}` |
+| `'playback:ended'` | `{ t }` |
+| `'time:changed'` | `{ t }` |
+| `'scene:loaded'` | `{ scene }` |
+| `'scene:mutated'` | `{ scene }` |
