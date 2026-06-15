@@ -10,6 +10,15 @@ export default defineConfig({
   },
 
   head: [
+    // Favicons
+    ['link', { rel: 'icon',             type: 'image/x-icon',  href: 'https://www.wity.ai/assets/favicon/favicon.ico' }],
+    ['link', { rel: 'icon',             type: 'image/png',     sizes: '32x32', href: 'https://www.wity.ai/assets/favicon/favicon-32x32.png' }],
+    ['link', { rel: 'icon',             type: 'image/png',     sizes: '16x16', href: 'https://www.wity.ai/assets/favicon/favicon-16x16.png' }],
+    ['link', { rel: 'apple-touch-icon', sizes: '180x180',      href: 'https://www.wity.ai/assets/favicon/apple-touch-icon.png' }],
+    ['link', { rel: 'mask-icon',        href: 'https://www.wity.ai/assets/favicon/safari-pinned-tab.svg', color: '#000000' }],
+    ['meta', { name: 'msapplication-TileImage', content: 'https://www.wity.ai/assets/favicon/mstile-150x150.png' }],
+    ['meta', { name: 'theme-color', content: '#ffffff' }],
+
     // Canonical
     ['link', { rel: 'canonical', href: 'https://www.wity.ai/stack/scene-graph/' }],
 
@@ -77,6 +86,12 @@ export default defineConfig({
   ],
 
   themeConfig: {
+    logo: {
+      light: 'https://www.wity.ai/assets/imgs/vritti-logo-dark.png',
+      dark:  'https://www.wity.ai/assets/imgs/vritti-logo-dark.png',
+      alt:   'Wity AI',
+    },
+
     nav: [
       { text: 'Guide',         link: '/guide/overview' },
       { text: 'API',           link: '/packages/scene-core' },
@@ -103,10 +118,13 @@ export default defineConfig({
       },
     ],
 
-    socialLinks: [],
+    socialLinks: [
+      { icon: 'github', link: 'https://github.com/wity-ai/wity-scene' },
+    ],
 
     footer: {
-      message: 'wity-scene — zero dependencies, deterministic, isomorphic',
+      message: 'Part of the <a href="https://www.wity.ai">Wity AI</a> open-source stack · <a href="https://github.com/wity-ai/wity-scene">GitHub</a> · <a href="https://www.npmjs.com/package/@wity/scene-core">npm</a>',
+      copyright: '© 2026 Wity AI',
     },
   },
 });
