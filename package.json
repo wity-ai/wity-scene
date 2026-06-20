@@ -6,7 +6,8 @@
   "workspaces": [
     "packages/scene-core",
     "packages/scene-headless",
-    "packages/scene-player"
+    "packages/scene-player",
+    "packages/scene-compiler"
   ],
   "config": {
     "staging_host_name": "gcp-vritti-dogfooding",
@@ -14,6 +15,7 @@
   },
   "scripts": {
     "build": "npm run build -w packages/scene-core && npm run build -w packages/scene-headless && npm run build -w packages/scene-player",
+    "build:compiler": "echo 'scene-compiler is pure ESM, no build step needed'",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
