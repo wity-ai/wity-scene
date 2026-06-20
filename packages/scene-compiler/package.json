@@ -9,7 +9,7 @@
   },
   "files": ["index.js", "src"],
   "scripts": {
-    "test": "node --experimental-vm-modules test/smoke.js"
+    "test": "node test/smoke.js"
   },
   "keywords": ["scene-graph", "compiler", "video", "canvas", "ffmpeg", "server"],
   "license": "MIT",

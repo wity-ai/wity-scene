@@ -16,6 +16,7 @@
   "scripts": {
     "build": "npm run build -w packages/scene-core && npm run build -w packages/scene-headless && npm run build -w packages/scene-player",
     "build:compiler": "echo 'scene-compiler is pure ESM, no build step needed'",
+    "test:compiler": "npm test -w packages/scene-compiler",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
