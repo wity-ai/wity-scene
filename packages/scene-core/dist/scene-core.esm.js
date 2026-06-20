@@ -1,3 +1,5 @@
+import { createRequire } from 'node:module';
+
 /**
  * @file schema/types.js
  * JSDoc type definitions and runtime constants for the wity-scene v1.0 schema.
@@ -198,10 +200,10 @@ function getParser() {
   }
 }
 
-/** Synchronous require shim for ESM — avoids top-level dynamic import */
+/** Synchronous require shim — works in both CJS (require exists) and pure ESM (createRequire) */
 function await_require(id) {
-  // eslint-disable-next-line no-undef
-  return typeof require !== 'undefined' ? require(id) : (() => { throw new Error(`Cannot require ${id} in pure ESM`); })();
+  const req = typeof require !== 'undefined' ? require : createRequire(import.meta.url);
+  return req(id);
 }
 
 // ─── Attribute helpers ───────────────────────────────────────────────────────
@@ -354,10 +356,10 @@ function parse(xml) {
   const parser = getParser();
   const doc    = parser.parseFromString(xml, 'text/xml');
 
-  // DOMParser error handling
-  const parseError = doc.querySelector('parsererror');
-  if (parseError) {
-    throw new Error(`[wity-scene] XML parse error: ${parseError.textContent?.trim()}`);
+  // DOMParser error handling — use getElementsByTagName for xmldom compat (no querySelector)
+  const parseErrors = doc.getElementsByTagName('parsererror');
+  if (parseErrors && parseErrors.length > 0) {
+    throw new Error(`[wity-scene] XML parse error: ${parseErrors[0].textContent?.trim()}`);
   }
 
   const root = doc.documentElement;
