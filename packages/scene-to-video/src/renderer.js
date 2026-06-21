@@ -7,7 +7,7 @@
  *   ws-text            : el.x, el.y = raw position; ctx.textAlign drives horizontal origin
  *                        ctx.textBaseline = 'top' so y is the top of the first line
  *
- * @module scene-compiler/renderer
+ * @module scene-to-video/renderer
  */
 
 import { evaluate }                from '@wity/scene-core';
@@ -38,7 +38,7 @@ async function preloadImages(scene) {
     try {
       cache.set(url, await loadImage(url));
     } catch (e) {
-      console.warn(`[scene-compiler] WARN: Could not load image "${url}": ${e.message}`);
+      console.warn(`[scene-to-video] WARN: Could not load image "${url}": ${e.message}`);
     }
   }));
   return cache;
@@ -190,7 +190,7 @@ function renderFrame(ctx, frame, imageCache) {
       case 'ws-image': renderImage(ctx, el, imageCache); break;
       case 'ws-text':  renderText(ctx, el);              break;
       default:
-        console.warn(`[scene-compiler] Unknown element tag: ${el.tag}`);
+        console.warn(`[scene-to-video] Unknown element tag: ${el.tag}`);
     }
 
     ctx.restore();
@@ -217,7 +217,7 @@ export async function renderFrames(scene, framesDir, { fps = 30 } = {}) {
   const ctx         = canvas.getContext('2d');
   const totalFrames = Math.ceil(scene.dur * fps);
 
-  console.debug(`[scene-compiler] Rendering ${totalFrames} frames at ${fps}fps (${scene.dur}s)`);
+  console.debug(`[scene-to-video] Rendering ${totalFrames} frames at ${fps}fps (${scene.dur}s)`);
 
   for (let i = 0; i < totalFrames; i++) {
     const t     = i / fps;

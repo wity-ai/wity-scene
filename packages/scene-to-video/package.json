@@ -1,5 +1,5 @@
 {
-  "name": "@wity/scene-compiler",
+  "name": "@wity/scene-to-video",
   "version": "1.0.0",
   "description": "Server-side compiler for wity-scene documents. Renders a <wity-scene> XML to MP4 using node-canvas (Cairo) + FFmpeg. Node.js / Lambda / container only — not browser-compatible.",
   "type": "module",

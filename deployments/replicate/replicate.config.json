@@ -1,0 +1,6 @@
+{
+  "owner":      "YOUR_REPLICATE_USERNAME",
+  "model":      "wity-scene-to-video",
+  "visibility": "private",
+  "hardware":   "cpu"
+}

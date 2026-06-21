@@ -1,38 +1,39 @@
-# Dockerfile for Replicate deployment of @wity/scene-compiler
+# Dockerfile for Replicate deployment of @wity/scene-to-video
 #
-# Builds a Node.js container with:
-#   - node-canvas (Cairo native addon, pre-built for this base image)
-#   - FFmpeg (system package)
-#   - @wity/scene-compiler + @wity/scene-core
-#   - A thin HTTP server (predict.js) that implements Replicate's prediction interface
+# Build context: repo root  (docker build -f deployments/replicate/Dockerfile .)
 #
-# Build: docker build -t wity-scene-compiler .
-# Run:   docker run -p 5000:5000 wity-scene-compiler
+# @napi-rs/canvas ships self-contained Skia binaries — no Cairo/Pango system
+# deps required. Only FFmpeg is needed as a system package.
 
 FROM node:20-bullseye-slim
 
-# Cairo + Pango + FFmpeg system deps (required by node-canvas)
+# FFmpeg is the only system dep needed (@napi-rs/canvas bundles its own Skia)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    build-essential \
-    libcairo2-dev \
-    libpango1.0-dev \
-    libjpeg-dev \
-    libgif-dev \
-    librsvg2-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy package files first for layer caching
-COPY package.json ./
-COPY ../../packages/scene-core  ./packages/scene-core
-COPY ../../packages/scene-compiler ./packages/scene-compiler
+# ── Dependencies (own layer — rebuilt only when packages change) ───────────────
 
-RUN npm install
+# Copy workspace packages (build context = repo root)
+COPY packages/scene-core      ./packages/scene-core
+COPY packages/scene-to-video  ./packages/scene-to-video
 
-# Copy prediction server
-COPY predict.js ./
+# Deployment package.json references the workspace packages via file: paths
+COPY deployments/replicate/package.json ./package.json
+
+# Install for linux/x64/glibc — matches Replicate's container runtime.
+# npm_config_libc=glibc ensures @napi-rs/canvas resolves the gnu binary,
+# not the musl variant, even on cross-platform build hosts.
+RUN npm_config_libc=glibc npm install \
+      --omit=dev \
+      --platform=linux \
+      --arch=x64
+
+# ── Application ───────────────────────────────────────────────────────────────
+
+COPY deployments/replicate/predict.js ./predict.js
 
 EXPOSE 5000
 

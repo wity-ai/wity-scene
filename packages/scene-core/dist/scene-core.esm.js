@@ -178,7 +178,7 @@ const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-image']);
 /**
  * Injected parser for Node.js environments.
  * Browser consumers use native DOMParser (set automatically).
- * Node.js consumers (e.g. scene-compiler) call setXmlParser() once at startup
+ * Node.js consumers (e.g. scene-to-video) call setXmlParser() once at startup
  * with an @xmldom/xmldom instance — keeping scene-core free of any Node.js-only imports.
  */
 let _injectedParser = null;
@@ -190,7 +190,7 @@ let _injectedParser = null;
  * @param {{ parseFromString: (xml: string, mime: string) => Document }} parserInstance
  *
  * @example
- * // In Node.js / scene-compiler:
+ * // In Node.js / scene-to-video:
  * import { DOMParser } from '@xmldom/xmldom';
  * import { setXmlParser } from '@wity/scene-core';
  * setXmlParser(new DOMParser());

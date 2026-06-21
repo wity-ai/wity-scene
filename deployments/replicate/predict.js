@@ -1,6 +1,6 @@
 /**
  * @file predict.js
- * Replicate-compatible HTTP prediction server for @wity/scene-compiler.
+ * Replicate-compatible HTTP prediction server for @wity/scene-to-video.
  *
  * Implements Replicate's Cog HTTP interface:
  *   POST /predictions  — start a prediction (synchronous in this impl)
@@ -19,7 +19,7 @@
 
 import { createServer }    from 'http';
 import { readFile }        from 'fs/promises';
-import { compile }         from '@wity/scene-compiler';
+import { compile }         from '@wity/scene-to-video';
 
 const PORT = process.env.PORT || 5000;
 
@@ -92,5 +92,5 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`[wity-scene-compiler] Replicate prediction server listening on :${PORT}`);
+  console.log(`[wity-scene-to-video] Replicate prediction server listening on :${PORT}`);
 });

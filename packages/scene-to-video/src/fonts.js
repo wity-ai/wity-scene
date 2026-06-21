@@ -6,7 +6,7 @@
  * (node-canvas requires a file path, not a URL or buffer) then calls
  * registerFont() which makes the family available to the 2D context.
  *
- * @module scene-compiler/fonts
+ * @module scene-to-video/fonts
  */
 
 import { createWriteStream } from 'fs';
@@ -39,6 +39,6 @@ export async function loadFonts(fontManifest, tmpDir) {
     await pipeline(res.body, fileStream);
 
     GlobalFonts.registerFromPath(fontPath, family);
-    console.debug(`[scene-compiler] Registered font: "${family}" from ${url}`);
+    console.debug(`[scene-to-video] Registered font: "${family}" from ${url}`);
   }));
 }

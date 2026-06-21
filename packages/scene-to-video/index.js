@@ -1,6 +1,6 @@
 /**
  * @file index.js
- * @module @wity/scene-compiler
+ * @module @wity/scene-to-video
  *
  * Server-side compiler: <wity-scene> XML → MP4.
  *
@@ -11,7 +11,7 @@
  *   framesToVideo(framesDir)  — FFmpeg: PNG sequence → MP4
  *
  * Usage:
- *   import { compile } from '@wity/scene-compiler';
+ *   import { compile } from '@wity/scene-to-video';
  *
  *   const { videoPath, cleanup } = await compile(sceneXml, fontManifest, { fps: 30 });
  *   // → upload videoPath to storage

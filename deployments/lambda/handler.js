@@ -1,6 +1,6 @@
 /**
  * @file handler.js
- * AWS Lambda handler — wraps @wity/scene-compiler for deployment in
+ * AWS Lambda handler — wraps @wity/scene-to-video for deployment in
  * content-publisher-service's Lambda fleet.
  *
  * Invocation pattern mirrors existing Lambda utils in content-publisher-service
@@ -19,7 +19,7 @@
  *   AWS_REGION     — AWS region (default: ap-south-1)
  */
 
-import { compile }          from '@wity/scene-compiler';
+import { compile }          from '@wity/scene-to-video';
 import { S3Client,
          PutObjectCommand } from '@aws-sdk/client-s3';
 import { readFile, stat }   from 'fs/promises';

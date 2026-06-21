@@ -6,7 +6,7 @@
  * FFmpeg must be available in PATH (Lambda layer, Docker image, or system install).
  * Override binary path via FFMPEG_PATH env variable if needed.
  *
- * @module scene-compiler/ffmpeg
+ * @module scene-to-video/ffmpeg
  */
 
 import ffmpeg from 'fluent-ffmpeg';
@@ -38,7 +38,7 @@ export function framesToVideo(framesDir, outputPath, { fps = 30 } = {}) {
         '-movflags +faststart' // web-optimised: moov atom at front
       ])
       .output(outputPath)
-      .on('start',  cmd  => console.debug('[scene-compiler] ffmpeg:', cmd))
+      .on('start',  cmd  => console.debug('[scene-to-video] ffmpeg:', cmd))
       .on('end',    ()   => resolve(outputPath))
       .on('error',  err  => reject(new Error(`FFmpeg failed: ${err.message}`)))
       .run();

@@ -1,0 +1,11 @@
+{
+  "name": "wity-scene-replicate",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Replicate prediction server for @wity/scene-to-video",
+  "dependencies": {
+    "@wity/scene-core":     "file:./packages/scene-core",
+    "@wity/scene-to-video": "file:./packages/scene-to-video"
+  }
+}

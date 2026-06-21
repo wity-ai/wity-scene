@@ -1,12 +1,12 @@
 /**
  * @file test/smoke.js
- * End-to-end smoke test for @wity/scene-compiler.
+ * End-to-end smoke test for @wity/scene-to-video.
  *
  * Compiles a minimal scene covering all three element types
  * (ws-rect, ws-image, ws-text) and verifies the output MP4 exists
  * with non-zero size.
  *
- * Run:  node packages/scene-compiler/test/smoke.js
+ * Run:  node packages/scene-to-video/test/smoke.js
  *
  * Exits 0 on pass, 1 on failure.
  * No test framework — plain Node.js assertions.
@@ -76,7 +76,7 @@ function assert(condition, label) {
 
 // ─── Run ──────────────────────────────────────────────────────────────────────
 
-console.log('\n@wity/scene-compiler smoke test\n');
+console.log('\n@wity/scene-to-video smoke test\n');
 
 let cleanup;
 try {
