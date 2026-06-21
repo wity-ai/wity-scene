@@ -11,7 +11,7 @@
  */
 
 import { evaluate }                from '@wity/scene-core';
-import { createCanvas, loadImage } from 'canvas';
+import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { writeFile }               from 'fs/promises';
 import { join }                    from 'path';
 
@@ -224,7 +224,7 @@ export async function renderFrames(scene, framesDir, { fps = 30 } = {}) {
     const frame = evaluate(scene, t);
     renderFrame(ctx, frame, imageCache);
 
-    const buf      = canvas.toBuffer('image/png');
+    const buf      = await canvas.encode('png');
     const filename = `frame_${String(i).padStart(5, '0')}.png`;
     await writeFile(join(framesDir, filename), buf);
   }

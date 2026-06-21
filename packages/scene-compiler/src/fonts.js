@@ -12,7 +12,7 @@
 import { createWriteStream } from 'fs';
 import { pipeline }          from 'stream/promises';
 import { join }              from 'path';
-import { registerFont }      from 'canvas';
+import { GlobalFonts }       from '@napi-rs/canvas';
 
 /**
  * Fetch and register all fonts in the manifest.
@@ -38,7 +38,7 @@ export async function loadFonts(fontManifest, tmpDir) {
     const fileStream = createWriteStream(fontPath);
     await pipeline(res.body, fileStream);
 
-    registerFont(fontPath, { family });
+    GlobalFonts.registerFromPath(fontPath, family);
     console.debug(`[scene-compiler] Registered font: "${family}" from ${url}`);
   }));
 }
