@@ -1,5 +1,3 @@
-import { createRequire } from 'node:module';
-
 /**
  * @file schema/types.js
  * JSDoc type definitions and runtime constants for the wity-scene v1.0 schema.
@@ -178,32 +176,45 @@ const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-image']);
 // ─── DOM resolver ─────────────────────────────────────────────────────────────
 
 /**
+ * Injected parser for Node.js environments.
+ * Browser consumers use native DOMParser (set automatically).
+ * Node.js consumers (e.g. scene-compiler) call setXmlParser() once at startup
+ * with an @xmldom/xmldom instance — keeping scene-core free of any Node.js-only imports.
+ */
+let _injectedParser = null;
+
+/**
+ * Inject an XML parser for environments where DOMParser is not globally available (Node.js).
+ * Must be called before parse() in Node.js contexts.
+ *
+ * @param {{ parseFromString: (xml: string, mime: string) => Document }} parserInstance
+ *
+ * @example
+ * // In Node.js / scene-compiler:
+ * import { DOMParser } from '@xmldom/xmldom';
+ * import { setXmlParser } from '@wity/scene-core';
+ * setXmlParser(new DOMParser());
+ */
+function setXmlParser(parserInstance) {
+  _injectedParser = parserInstance;
+}
+
+/**
  * Obtain a DOMParser-compatible parser.
- * Browser: native DOMParser.
- * Node.js: @xmldom/xmldom (optional peer dep) or throws a clear error.
+ * Browser: native DOMParser (automatic).
+ * Node.js: injected via setXmlParser() — throws a clear error if not set.
  *
  * @returns {{ parseFromString: (xml: string, mime: string) => Document }}
  */
 function getParser() {
-  if (typeof DOMParser !== 'undefined') {
-    return new DOMParser();
-  }
-  // Node.js — require optional peer
-  try {
-    const { DOMParser: XmlDOMParser } = await_require('@xmldom/xmldom');
-    return new XmlDOMParser();
-  } catch {
-    throw new Error(
-      '[wity-scene] Node.js environment detected but @xmldom/xmldom is not installed. ' +
-      'Run: npm install @xmldom/xmldom',
-    );
-  }
-}
-
-/** Synchronous require shim — works in both CJS (require exists) and pure ESM (createRequire) */
-function await_require(id) {
-  const req = typeof require !== 'undefined' ? require : createRequire(import.meta.url);
-  return req(id);
+  if (_injectedParser)                   return _injectedParser;
+  if (typeof DOMParser !== 'undefined')  return new DOMParser();
+  throw new Error(
+    '[wity-scene] No XML parser available. In Node.js, call setXmlParser() before parse().\n' +
+    '  import { DOMParser } from "@xmldom/xmldom";\n' +
+    '  import { setXmlParser } from "@wity/scene-core";\n' +
+    '  setXmlParser(new DOMParser());',
+  );
 }
 
 // ─── Attribute helpers ───────────────────────────────────────────────────────
@@ -1087,5 +1098,5 @@ function validate(scene) {
   return { valid: errors.length === 0, errors, warnings };
 }
 
-export { ANCHOR_VALUES, ANIMATE_IN_VALUES, ANIMATE_OUT_VALUES, ELEMENT_TAGS, SCHEMA_VERSION, evaluate, parse, resolveUnit, serialize, validate };
+export { ANCHOR_VALUES, ANIMATE_IN_VALUES, ANIMATE_OUT_VALUES, ELEMENT_TAGS, SCHEMA_VERSION, evaluate, parse, resolveUnit, serialize, setXmlParser, validate };
 //# sourceMappingURL=scene-core.esm.js.map

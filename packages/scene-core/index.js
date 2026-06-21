@@ -16,7 +16,7 @@
  * for consumers who need them without importing internals directly.
  */
 
-export { parse }        from './parser/parse.js';
+export { parse, setXmlParser } from './parser/parse.js';
 export { serialize }    from './serializer/serialize.js';
 export { evaluate }     from './evaluator/evaluate.js';
 export { validate }     from './validator/validate.js';

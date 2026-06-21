@@ -20,7 +20,9 @@
  * NODE.JS / SERVER / LAMBDA ONLY — requires node-canvas (native addon) and FFmpeg.
  */
 
-import { parse }         from '@wity/scene-core';
+import { DOMParser }     from '@xmldom/xmldom';
+import { parse,
+         setXmlParser }  from '@wity/scene-core';
 import { loadFonts }     from './src/fonts.js';
 import { renderFrames }  from './src/renderer.js';
 import { framesToVideo } from './src/ffmpeg.js';
@@ -47,6 +49,11 @@ import { join }          from 'path';
  *   videoPath — absolute path to the compiled .mp4 (in a temp dir unless outputPath set)
  *   cleanup   — call after you have uploaded/copied the file to remove the temp dir
  */
+// Register @xmldom/xmldom as the XML parser for this Node.js-only package.
+// scene-core is isomorphic and uses native DOMParser in the browser;
+// here we inject the Node.js implementation once at module load time.
+setXmlParser(new DOMParser());
+
 export async function compile(sceneXml, fontManifest = {}, options = {}) {
   const { fps = 30, outputPath } = options;
 
