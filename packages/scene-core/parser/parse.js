@@ -9,7 +9,14 @@
  * @module parser/parse
  */
 
-import { SCHEMA_VERSION, ELEMENT_TAGS, ANIMATE_IN_VALUES, ANIMATE_OUT_VALUES, ANCHOR_VALUES } from '../schema/types.js';
+import {
+  SCHEMA_VERSION,
+  ELEMENT_TAGS,
+  ANIMATE_IN_VALUES,
+  ANIMATE_OUT_VALUES,
+  ANCHOR_VALUES,
+  MEDIA_FIT_VALUES,
+} from '../schema/types.js';
 
 // ─── DOM resolver ─────────────────────────────────────────────────────────────
 
@@ -92,6 +99,12 @@ function enumAttr(el, name, allowed, fallback) {
   return v;
 }
 
+function boolAttr(el, name, fallback) {
+  const v = el.getAttribute(name);
+  if (v === null) return fallback;
+  return v === 'true' || v === '1';
+}
+
 let _elementCounter = 0;
 function nextId(tag) {
   return `${tag}-${++_elementCounter}`;
@@ -100,7 +113,7 @@ function nextId(tag) {
 // ─── Element parsers ─────────────────────────────────────────────────────────
 
 /**
- * Parse common WsElementBase attributes.
+ * Parse common WsElementBase attributes (visual elements only).
  * @param {Element} el
  * @returns {import('../schema/types.js').WsElementBase}
  */
@@ -159,7 +172,38 @@ function parseImage(el) {
     src:    attr(el, 'src', ''),
     width:  unitAttr(el, 'width', '100%'),
     height: unitAttr(el, 'height', '100%'),
-    fit:    enumAttr(el, 'fit', ['cover', 'contain', 'fill', 'none'], 'cover'),
+    fit:    enumAttr(el, 'fit', MEDIA_FIT_VALUES, 'cover'),
+  };
+}
+
+/** @param {Element} el @returns {import('../schema/types.js').WsVideo} */
+function parseVideo(el) {
+  return {
+    ...parseElementBase(el),
+    tag:     'ws-video',
+    src:     attr(el, 'src', ''),
+    width:   unitAttr(el, 'width', '100%'),
+    height:  unitAttr(el, 'height', '100%'),
+    fit:     enumAttr(el, 'fit', MEDIA_FIT_VALUES, 'cover'),
+    volume:  numAttr(el, 'volume', 1),
+    trimIn:  numAttr(el, 'trim-in', 0),
+    trimOut: el.hasAttribute('trim-out') ? numAttr(el, 'trim-out', null) : null,
+    muted:   boolAttr(el, 'muted', false),
+  };
+}
+
+/** @param {Element} el @returns {import('../schema/types.js').WsAudio} */
+function parseAudio(el) {
+  return {
+    tag:     'ws-audio',
+    id:      attr(el, 'id') || nextId('ws-audio'),
+    begin:   numAttr(el, 'begin', 0),
+    dur:     numAttr(el, 'dur', Infinity),
+    src:     attr(el, 'src', ''),
+    volume:  numAttr(el, 'volume', 1),
+    loop:    boolAttr(el, 'loop', false),
+    trimIn:  numAttr(el, 'trim-in', 0),
+    trimOut: el.hasAttribute('trim-out') ? numAttr(el, 'trim-out', null) : null,
   };
 }
 
@@ -169,8 +213,38 @@ function parseElement(el) {
     case 'ws-text':  return parseText(el);
     case 'ws-rect':  return parseRect(el);
     case 'ws-image': return parseImage(el);
+    case 'ws-video': return parseVideo(el);
+    case 'ws-audio': return parseAudio(el);
     default:         return null;
   }
+}
+
+// ─── Cast parser ──────────────────────────────────────────────────────────────
+
+/** @param {Element} el @returns {import('../schema/types.js').WsCharacter} */
+function parseCharacter(el) {
+  return {
+    id:          attr(el, 'id') || nextId('ws-character'),
+    name:        attr(el, 'name', ''),
+    ...(el.hasAttribute('role')        && { role:        attr(el, 'role') }),
+    ...(el.hasAttribute('description') && { description: attr(el, 'description') }),
+    ...(el.hasAttribute('avatar-url')  && { avatarUrl:   attr(el, 'avatar-url') }),
+  };
+}
+
+/**
+ * Parse a <ws-cast> element into an array of WsCharacter objects.
+ * @param {Element} el
+ * @returns {import('../schema/types.js').WsCharacter[]}
+ */
+function parseCast(el) {
+  const characters = [];
+  for (const child of el.children) {
+    if (child.tagName === 'ws-character') {
+      characters.push(parseCharacter(child));
+    }
+  }
+  return characters;
 }
 
 // ─── Layer parser ─────────────────────────────────────────────────────────────
@@ -222,11 +296,15 @@ export function parse(xml) {
   const dur     = numAttr(root, 'dur',    0);
 
   const layers = [];
+  let cast = [];
+
   for (const child of root.children) {
     if (child.tagName === 'ws-layer') {
       layers.push(parseLayer(child));
+    } else if (child.tagName === 'ws-cast') {
+      cast = parseCast(child);
     }
   }
 
-  return { version, width, height, dur, layers };
+  return { version, width, height, dur, layers, cast };
 }

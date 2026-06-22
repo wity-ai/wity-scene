@@ -2,15 +2,20 @@
  * @file schema/types.js
  * JSDoc type definitions and runtime constants for the wity-scene v1.0 schema.
  *
- * A WityScene document is a deterministic spatial composition:
+ * A WityScene document is a deterministic spatial-temporal composition:
  *   f(scene, t) → ComputedFrame
  *
  * XML representation:
  *   <wity-scene version="1.0" width="1920" height="1080" dur="8.0">
- *     <ws-layer id="background" z="0">
- *       <ws-rect x="0" y="0" width="100%" height="100%" fill="#000000" />
+ *     <ws-cast>
+ *       <ws-character id="char1" name="Sarah" role="host" />
+ *     </ws-cast>
+ *     <ws-layer id="media" z="0">
+ *       <ws-video src="clip.mp4" width="100%" height="100%" begin="0" dur="8" />
+ *       <ws-audio src="music.mp3" begin="0" dur="8" volume="0.4" />
  *     </ws-layer>
- *     <ws-layer id="title" z="10">
+ *     <ws-layer id="graphics" z="10">
+ *       <ws-image src="poster.jpg" x="50%" y="50%" anchor="center" begin="2" dur="4" />
  *       <ws-text x="50%" y="40%" anchor="center" animate-in="fade-up" animate-dur="0.6">
  *         Opening Night
  *       </ws-text>
@@ -38,9 +43,16 @@ export const ANCHOR_VALUES = /** @type {const} */ ([
   'bottom-left', 'bottom', 'bottom-right',
 ]);
 
-// ─── Element tags ────────────────────────────────────────────────────────────
+// ─── Media fit types ─────────────────────────────────────────────────────────
 
-export const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-image']);
+/** @type {readonly string[]} */
+export const MEDIA_FIT_VALUES = /** @type {const} */ (['cover', 'contain', 'fill', 'none']);
+
+// ─── Element tags ────────────────────────────────────────────────────────────
+// Visual elements (rendered inside ws-layer).
+// ws-audio has no visual output but is temporal and lives in layers.
+
+export const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-image', 'ws-video', 'ws-audio']);
 
 // ─── JSDoc types ─────────────────────────────────────────────────────────────
 
@@ -63,7 +75,11 @@ export const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-ima
  */
 
 /**
- * Common positional and temporal attributes shared by all elements.
+ * @typedef {'cover'|'contain'|'fill'|'none'} MediaFit
+ */
+
+/**
+ * Common positional and temporal attributes shared by visual elements.
  * @typedef {Object} WsElementBase
  * @property {string}      id          - Unique element identifier (auto-assigned if absent in XML)
  * @property {UnitValue}   x           - Horizontal position
@@ -111,12 +127,42 @@ export const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-ima
  *   src:         string,
  *   width:       UnitValue,
  *   height:      UnitValue,
- *   fit:         'cover'|'contain'|'fill'|'none',
+ *   fit:         MediaFit,
  * }} WsImage
  */
 
 /**
- * @typedef {WsText | WsRect | WsImage} WsElement
+ * A video clip element — positioned and temporally placed within a layer.
+ * @typedef {WsElementBase & {
+ *   tag:     'ws-video',
+ *   src:     string,
+ *   width:   UnitValue,
+ *   height:  UnitValue,
+ *   fit:     MediaFit,
+ *   volume:  number,
+ *   trimIn:  number,
+ *   trimOut: number | null,
+ *   muted:   boolean,
+ * }} WsVideo
+ */
+
+/**
+ * An audio track element — temporal only, no visual output.
+ * Lives inside a ws-layer for document organisation but has no spatial position.
+ * @typedef {Object} WsAudio
+ * @property {string}        tag     - 'ws-audio'
+ * @property {string}        id      - Unique identifier
+ * @property {number}        begin   - Start time in seconds (default 0)
+ * @property {number}        dur     - Duration in seconds; Infinity = full scene duration
+ * @property {string}        src     - Audio file URL
+ * @property {number}        volume  - 0–1 (default 1)
+ * @property {boolean}       loop    - Whether to loop (default false)
+ * @property {number}        trimIn  - Trim start offset in seconds (default 0)
+ * @property {number | null} trimOut - Trim end offset in seconds from start; null = no trim
+ */
+
+/**
+ * @typedef {WsText | WsRect | WsImage | WsVideo | WsAudio} WsElement
  */
 
 /**
@@ -128,13 +174,26 @@ export const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-ima
  */
 
 /**
+ * A semantic character entity within the scene.
+ * Not rendered — consumed by authoring tools, AI agents, players, and compilers.
+ * Stored in the <ws-cast> section of the scene document.
+ * @typedef {Object} WsCharacter
+ * @property {string}  id           - Unique character identifier
+ * @property {string}  name         - Display name
+ * @property {string}  [role]       - Role in the scene (e.g. "host", "narrator")
+ * @property {string}  [description] - Free-form description or notes
+ * @property {string}  [avatarUrl]  - URL to avatar/reference image
+ */
+
+/**
  * Root scene document — the parsed, validated in-memory representation.
  * @typedef {Object} WityScene
- * @property {string}    version  - Schema version, e.g. "1.0"
- * @property {number}    width    - Canvas width in pixels
- * @property {number}    height   - Canvas height in pixels
- * @property {number}    dur      - Total duration in seconds
- * @property {WsLayer[]} layers
+ * @property {string}        version    - Schema version, e.g. "1.0"
+ * @property {number}        width      - Canvas width in pixels
+ * @property {number}        height     - Canvas height in pixels
+ * @property {number}        dur        - Total duration in seconds
+ * @property {WsLayer[]}     layers
+ * @property {WsCharacter[]} cast       - Semantic character entities (non-rendered metadata)
  */
 
 /**

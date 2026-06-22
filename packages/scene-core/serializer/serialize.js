@@ -12,8 +12,8 @@
  * Format a key/value pair as an XML attribute string.
  * Skips null, undefined, and values equal to their defaults.
  * @param {string} name
- * @param {string|number|null|undefined} value
- * @param {string|number|null} [defaultValue] - omit the attr if value === default
+ * @param {string|number|boolean|null|undefined} value
+ * @param {string|number|boolean|null} [defaultValue] - omit the attr if value === default
  */
 function attrib(name, value, defaultValue = undefined) {
   if (value == null) return '';
@@ -45,7 +45,7 @@ function ind(depth) {
 // ─── Element serializers ─────────────────────────────────────────────────────
 
 /**
- * Serialize the common WsElementBase attributes.
+ * Serialize the common WsElementBase attributes (visual elements).
  * @param {import('../schema/types.js').WsElementBase} el
  */
 function baseAttribs(el) {
@@ -107,14 +107,70 @@ function serializeImage(el, depth) {
   return `${ind(depth)}<ws-image${attrs} />`;
 }
 
+/** @param {import('../schema/types.js').WsVideo} el @param {number} depth */
+function serializeVideo(el, depth) {
+  const attrs = baseAttribs(el) + [
+    attrib('src',      el.src),
+    attrib('width',    el.width,   '100%'),
+    attrib('height',   el.height,  '100%'),
+    attrib('fit',      el.fit,     'cover'),
+    attrib('volume',   el.volume,  1),
+    attrib('trim-in',  el.trimIn,  0),
+    attrib('trim-out', el.trimOut  ?? undefined),
+    attrib('muted',    el.muted,   false),
+  ].join('');
+  return `${ind(depth)}<ws-video${attrs} />`;
+}
+
+/** @param {import('../schema/types.js').WsAudio} el @param {number} depth */
+function serializeAudio(el, depth) {
+  const attrs = [
+    attrib('id',       el.id),
+    attrib('begin',    el.begin,  0),
+    attrib('dur',      Number.isFinite(el.dur) ? el.dur : undefined),
+    attrib('src',      el.src),
+    attrib('volume',   el.volume, 1),
+    attrib('loop',     el.loop,   false),
+    attrib('trim-in',  el.trimIn, 0),
+    attrib('trim-out', el.trimOut ?? undefined),
+  ].join('');
+  return `${ind(depth)}<ws-audio${attrs} />`;
+}
+
 /** @param {import('../schema/types.js').WsElement} el @param {number} depth */
 function serializeElement(el, depth) {
   switch (el.tag) {
     case 'ws-text':  return serializeText(el, depth);
     case 'ws-rect':  return serializeRect(el, depth);
     case 'ws-image': return serializeImage(el, depth);
+    case 'ws-video': return serializeVideo(el, depth);
+    case 'ws-audio': return serializeAudio(el, depth);
     default:         return '';
   }
+}
+
+// ─── Cast serializer ──────────────────────────────────────────────────────────
+
+/** @param {import('../schema/types.js').WsCharacter} char @param {number} depth */
+function serializeCharacter(char, depth) {
+  const attrs = [
+    attrib('id',          char.id),
+    attrib('name',        char.name),
+    attrib('role',        char.role        ?? undefined),
+    attrib('description', char.description ?? undefined),
+    attrib('avatar-url',  char.avatarUrl   ?? undefined),
+  ].join('');
+  return `${ind(depth)}<ws-character${attrs} />`;
+}
+
+/**
+ * @param {import('../schema/types.js').WsCharacter[]} cast
+ * @param {number} depth
+ */
+function serializeCast(cast, depth) {
+  if (cast.length === 0) return '';
+  const children = cast.map((c) => serializeCharacter(c, depth + 1)).join('\n');
+  return `${ind(depth)}<ws-cast>\n${children}\n${ind(depth)}</ws-cast>`;
 }
 
 // ─── Layer serializer ─────────────────────────────────────────────────────────
@@ -155,13 +211,17 @@ export function serialize(scene) {
     attrib('dur',     scene.dur),
   ].join('');
 
-  if (scene.layers.length === 0) {
+  const cast   = scene.cast   ?? [];
+  const layers = scene.layers ?? [];
+
+  const castXml   = serializeCast(cast, 1);
+  const layersXml = layers.map((l) => serializeLayer(l, 1)).join('\n');
+
+  const bodyParts = [castXml, layersXml].filter(Boolean);
+
+  if (bodyParts.length === 0) {
     return `<?xml version="1.0" encoding="UTF-8"?>\n<wity-scene${rootAttribs} />`;
   }
 
-  const layers = scene.layers
-    .map((l) => serializeLayer(l, 1))
-    .join('\n');
-
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<wity-scene${rootAttribs}>\n${layers}\n</wity-scene>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<wity-scene${rootAttribs}>\n${bodyParts.join('\n')}\n</wity-scene>`;
 }
