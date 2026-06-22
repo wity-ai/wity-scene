@@ -1,5 +1,5 @@
 {
-  "owner":      "YOUR_REPLICATE_USERNAME",
+  "owner":      "vritti-ai",
   "model":      "wity-scene-to-video",
   "visibility": "private",
   "hardware":   "cpu"
