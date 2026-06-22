@@ -41,6 +41,10 @@ import { parse, evaluate } from '@wity/scene';
 ```js
 const scene = parse(`
   <wity-scene version="1.0" width="1920" height="1080" dur="6.0">
+    <ws-layer id="media" z="0">
+      <ws-video src="clip.mp4" width="100%" height="100%" begin="0" dur="6" />
+      <ws-audio src="music.mp3" begin="0" dur="6" volume="0.3" />
+    </ws-layer>
     <ws-layer id="title" z="10">
       <ws-text x="50%" y="40%" anchor="center"
                font-size="5%" color="#ffffff"
@@ -63,8 +67,9 @@ const frame = evaluate(scene, 1.0);
 
 ```
 WityScene
-└── WsLayer[]           z-ordered planes
-    └── WsElement[]     ws-text | ws-rect | ws-image
+├── WsCharacter[]   (ws-cast — semantic metadata entities, non-rendered)
+└── WsLayer[]       (z-ordered planes)
+    └── WsElement[] (ws-text | ws-rect | ws-image | ws-video | ws-audio)
 ```
 
 ### Root element
@@ -92,7 +97,7 @@ WityScene
 | z         | 0       | layer stacking order |
 | opacity   | 1       | layer-level opacity, multiplied with element opacity |
 
-### Common element attributes (all element types)
+### Common element attributes (visual elements)
 
 | XML attribute | Object field | Default    | Description |
 |---------------|-------------|------------|-------------|
@@ -167,7 +172,7 @@ Text content is the element's text node.
 ### `<ws-image>`
 
 ```xml
-<ws-image src="https://..." width="100%" height="100%" fit="cover" />
+<ws-image src="https://..." width="100%" height="100%" fit="cover" begin="2" dur="4" />
 ```
 
 | XML attribute | Default  |
@@ -177,27 +182,117 @@ Text content is the element's text node.
 | height        | 100% |
 | fit           | cover — values: cover · contain · fill · none |
 
-### Full example — film credits
+### `<ws-video>`
+
+A video clip element — extends all common element attributes. Positioned and temporally placed within a layer.
+
+```xml
+<ws-video
+  src="https://cdn.example.com/clip.mp4"
+  width="100%" height="100%" fit="cover"
+  begin="0" dur="8"
+  volume="0.8" trim-in="2.5" />
+```
+
+| XML attribute | Object field | Default | Description |
+|---------------|-------------|---------|-------------|
+| src           | src         | required | Video file URL |
+| width         | width       | 100% | Display width |
+| height        | height      | 100% | Display height |
+| fit           | fit         | cover | Object-fit: cover · contain · fill · none |
+| volume        | volume      | 1 | Playback volume 0–1 |
+| trim-in       | trimIn      | 0 | Start offset within source file (seconds) |
+| trim-out      | trimOut     | (none) | End offset within source file; omit = play to end |
+| muted         | muted       | false | Mute audio track |
+
+### `<ws-audio>`
+
+A temporal audio element — lives inside a ws-layer but has no visual output and no spatial attributes.
+
+```xml
+<ws-audio
+  src="https://cdn.example.com/music.mp3"
+  begin="0" dur="30"
+  volume="0.4" loop="false" />
+```
+
+| XML attribute | Object field | Default  | Description |
+|---------------|-------------|----------|-------------|
+| id            | id          | auto     | Unique identifier |
+| begin         | begin       | 0        | Start time seconds |
+| dur           | dur         | Infinity | Duration seconds |
+| src           | src         | required | Audio file URL |
+| volume        | volume      | 1        | Volume 0–1 |
+| loop          | loop        | false    | Loop the audio |
+| trim-in       | trimIn      | 0        | Start offset within source file (seconds) |
+| trim-out      | trimOut     | (none)   | End offset within source file |
+
+### `<ws-cast>` and `<ws-character>`
+
+The optional `<ws-cast>` section is a direct child of `<wity-scene>` (before layers). It contains `<ws-character>` metadata entities — **not rendered**, consumed by authoring tools, AI agents, players, and compilers.
+
+```xml
+<ws-cast>
+  <ws-character id="char1" name="Sarah" role="Host"
+                description="Warm, energetic presenter"
+                avatar-url="https://cdn.example.com/sarah.jpg" />
+  <ws-character id="char2" name="Alex" role="Narrator" />
+</ws-cast>
+```
+
+| XML attribute | Object field | Required | Description |
+|---------------|-------------|----------|-------------|
+| id            | id          | yes      | Unique character id |
+| name          | name        | yes      | Display name |
+| role          | role        | no       | Role in scene (e.g. "Host", "Narrator") |
+| description   | description | no       | Free-form notes or personality |
+| avatar-url    | avatarUrl   | no       | Reference image URL |
+
+Accessed as `scene.cast: WsCharacter[]` after parsing.
+
+### Full example — product video scene
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<wity-scene version="1.0" width="1920" height="1080" dur="8.0">
+<wity-scene version="1.0" width="1080" height="1920" dur="15.0">
 
-  <ws-layer id="scrim" z="0">
-    <ws-rect x="0" y="0" width="100%" height="100%"
-             fill="#000000" opacity="0.65" />
+  <ws-cast>
+    <ws-character id="char1" name="Maya" role="Host"
+                  description="Upbeat product presenter" />
+  </ws-cast>
+
+  <ws-layer id="video" z="0">
+    <ws-video src="https://cdn.example.com/bg-clip.mp4"
+              width="100%" height="100%" fit="cover"
+              begin="0" dur="15" volume="0" />
   </ws-layer>
 
-  <ws-layer id="title" z="10">
+  <ws-layer id="audio" z="1">
+    <ws-audio src="https://cdn.example.com/music.mp3"
+              begin="0" dur="15" volume="0.35" />
+  </ws-layer>
+
+  <ws-layer id="poster" z="2">
+    <ws-image src="https://cdn.example.com/product.jpg"
+              x="50%" y="45%" anchor="center"
+              width="80%" height="60%" fit="contain"
+              begin="4" dur="6"
+              animate-in="fade" animate-dur="0.5" />
+  </ws-layer>
+
+  <ws-layer id="graphics" z="10">
+    <ws-rect x="0" y="0" width="100%" height="100%"
+             fill="#000000" opacity="0.4"
+             begin="0" dur="3" animate-out="fade" animate-dur="0.5" />
     <ws-text x="50%" y="38%" anchor="center"
-             font-size="6%" font-weight="bold" color="#ffffff"
-             animate-in="fade-up" animate-dur="0.7">
-      Nocturne
+             font-size="7%" font-weight="bold" color="#ffffff"
+             animate-in="fade-up" animate-dur="0.6">
+      New Collection
     </ws-text>
-    <ws-text x="50%" y="50%" anchor="center"
-             font-size="2.5%" color="#cccccc" letter-spacing="0.2em"
-             animate-in="fade" begin="0.4" animate-dur="0.6">
-      A film by Apratim
+    <ws-text x="50%" y="52%" anchor="center"
+             font-size="3%" color="#cccccc"
+             animate-in="fade" begin="0.4" animate-dur="0.5">
+      Spring 2026
     </ws-text>
   </ws-layer>
 
@@ -232,6 +327,9 @@ Effective z = layer.z × 1000 + element.z.
 
 Animation offsets are baked into x and y — renderer receives final pixel position.
 
+`ws-audio` elements appear in `frame.elements` with correct `visible` flag but no pixel output — renderers should check `el.tag === 'ws-audio'` and handle accordingly.
+`ws-character` entities are NOT in `frame.elements` — access via `scene.cast`.
+
 ### serialize(scene)
 
 ```js
@@ -240,6 +338,7 @@ serialize(scene: WityScene): string
 
 Serialize a WityScene to canonical XML. Round-trips cleanly with parse().
 Omits attributes equal to their defaults.
+`<ws-cast>` section appears before layers when `scene.cast` is non-empty.
 
 ### validate(scene)
 
@@ -247,8 +346,8 @@ Omits attributes equal to their defaults.
 validate(scene: WityScene): { valid: boolean, errors: string[], warnings: string[] }
 ```
 
-Structural validation without throwing. Checks root types, layer types, element types,
-unit value forms, opacity range [0,1], enum membership, id uniqueness across the scene.
+Structural validation without throwing. Checks root types, cast array, layer types, element types,
+unit value forms, opacity/volume range [0,1], enum membership, id uniqueness across the scene.
 
 ### resolveUnit(value, containerSize)
 
@@ -270,7 +369,7 @@ resolveUnit(80, 0)         // 80
 ### WityScene
 
 ```js
-{ version: string, width: number, height: number, dur: number, layers: WsLayer[] }
+{ version: string, width: number, height: number, dur: number, layers: WsLayer[], cast: WsCharacter[] }
 ```
 
 ### WsLayer
@@ -279,14 +378,22 @@ resolveUnit(80, 0)         // 80
 { id: string, z: number, opacity: number, elements: WsElement[] }
 ```
 
-### WsElement = WsText | WsRect | WsImage
+### WsElement = WsText | WsRect | WsImage | WsVideo | WsAudio
 
-All share WsElementBase: `{ id, x, y, anchor, begin, dur, z, opacity, animateIn, animateOut, animateDur }`
+Visual elements share WsElementBase: `{ id, x, y, anchor, begin, dur, z, opacity, animateIn, animateOut, animateDur }`
 
 ```js
 WsText:  WsElementBase & { tag: 'ws-text',  content, fontSize, fontFamily, fontWeight, color, textAlign, lineHeight, maxWidth, letterSpacing }
 WsRect:  WsElementBase & { tag: 'ws-rect',  width, height, fill, stroke, strokeWidth, rx }
 WsImage: WsElementBase & { tag: 'ws-image', src, width, height, fit }
+WsVideo: WsElementBase & { tag: 'ws-video', src, width, height, fit, volume, trimIn, trimOut, muted }
+WsAudio: { tag: 'ws-audio', id, begin, dur, src, volume, loop, trimIn, trimOut }
+```
+
+### WsCharacter
+
+```js
+{ id: string, name: string, role?: string, description?: string, avatarUrl?: string }
 ```
 
 ### ComputedFrame
@@ -300,7 +407,7 @@ WsImage: WsElementBase & { tag: 'ws-image', src, width, height, fit }
 ```js
 {
   id:      string,
-  tag:     'ws-text' | 'ws-rect' | 'ws-image',
+  tag:     'ws-text' | 'ws-rect' | 'ws-image' | 'ws-video' | 'ws-audio',
   x:       number,          // px, anchor-adjusted + animation offset
   y:       number,
   opacity: number,          // element × layer × animation
@@ -310,6 +417,8 @@ WsImage: WsElementBase & { tag: 'ws-image', src, width, height, fit }
     // ws-text:  fontSize, fontFamily, fontWeight, color, textAlign, lineHeight, maxWidth, letterSpacing
     // ws-rect:  width, height, fill, stroke, strokeWidth, rx
     // ws-image: src, width, height, fit
+    // ws-video: src, width, height, fit, volume, trimIn, trimOut, muted
+    // ws-audio: src, volume, loop, trimIn, trimOut
   },
   content: string | null,   // text content for ws-text; null otherwise
 }
@@ -326,6 +435,8 @@ function render(container, frame) {
   container.innerHTML = '';
   for (const el of frame.elements) {
     if (!el.visible) continue;
+    if (el.tag === 'ws-audio') continue; // handled by audio engine, not DOM
+
     const div = document.createElement('div');
     div.style.position = 'absolute';
     div.style.left     = `${el.x}px`;
@@ -347,6 +458,14 @@ function render(container, frame) {
       div.style.background = el.props.fill;
       if (el.props.rx) div.style.borderRadius = `${el.props.rx}px`;
     }
+    if (el.tag === 'ws-image' || el.tag === 'ws-video') {
+      const media = document.createElement(el.tag === 'ws-video' ? 'video' : 'img');
+      media.src            = el.props.src;
+      media.style.width    = `${el.props.width}px`;
+      media.style.height   = `${el.props.height}px`;
+      media.style.objectFit = el.props.fit;
+      div.appendChild(media);
+    }
     container.appendChild(div);
   }
 }
@@ -359,6 +478,7 @@ function renderCanvas(ctx, frame) {
   ctx.clearRect(0, 0, frame.width, frame.height);
   for (const el of frame.elements) {
     if (!el.visible) continue;
+    if (el.tag === 'ws-audio') continue;
     ctx.globalAlpha = el.opacity;
     if (el.tag === 'ws-rect') {
       ctx.fillStyle = el.props.fill;

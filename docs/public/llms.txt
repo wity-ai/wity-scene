@@ -1,6 +1,6 @@
 # wity-scene
 
-A headless XML scene-graph library for spatial overlays and compositing. Deterministic: f(scene, t) → ComputedFrame. Zero runtime dependencies. Runs in browser and Node.js.
+A headless XML scene-graph library for spatial-temporal composition. Deterministic: f(scene, t) → ComputedFrame. Zero runtime dependencies. Runs in browser and Node.js.
 
 Current version: scene-core v1.0.0 · scene-headless v1.0.0 · scene-player v1.0.0 · scene v1.0.0
 Docs: https://www.wity.ai/stack/scene-graph/
@@ -21,6 +21,15 @@ Docs: https://www.wity.ai/stack/scene-graph/
 
 Core model: a scene document is a pure function of time. Call `evaluate(scene, t)` at any frame — no mutation, no playback state.
 
+## Document structure
+
+```
+WityScene
+├── WsCharacter[]   (ws-cast — semantic metadata entities, non-rendered)
+└── WsLayer[]       (z-ordered planes)
+    └── WsElement[] (ws-text | ws-rect | ws-image | ws-video | ws-audio)
+```
+
 ## Quick start — evaluate only
 
 ```js
@@ -28,6 +37,10 @@ import { parse, evaluate } from '@wity/scene-core';
 
 const scene = parse(`
   <wity-scene version="1.0" width="1920" height="1080" dur="6.0">
+    <ws-layer id="media" z="0">
+      <ws-video src="clip.mp4" width="100%" height="100%" begin="0" dur="6" volume="0.8" />
+      <ws-audio src="music.mp3" begin="0" dur="6" volume="0.3" />
+    </ws-layer>
     <ws-layer id="title" z="10">
       <ws-text x="50%" y="40%" anchor="center"
                font-size="5%" color="#ffffff"

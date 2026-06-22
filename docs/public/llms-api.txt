@@ -12,7 +12,11 @@ Version: scene-core v1.0.0 · scene-headless v1.0.0 · scene-player v1.0.0
 // Core — parse/evaluate/serialize/validate
 import {
   parse, evaluate, serialize, validate, resolveUnit,
-  SCHEMA_VERSION, ANIMATE_IN_VALUES, ANIMATE_OUT_VALUES, ANCHOR_VALUES, ELEMENT_TAGS,
+  SCHEMA_VERSION,
+  ANIMATE_IN_VALUES, ANIMATE_OUT_VALUES,
+  ANCHOR_VALUES,
+  ELEMENT_TAGS,
+  MEDIA_FIT_VALUES,
 } from '@wity/scene-core';
 
 // Headless player — drives evaluate() at playback rate
@@ -108,6 +112,8 @@ evaluate(scene: WityScene, t: number): ComputedFrame
 - Pure function — no mutation, no side effects
 - Elements sorted by effective z ascending (painters algorithm)
 - Effective z = `layer.z * 1000 + element.z`
+- `ws-audio` elements appear in `frame.elements` with temporal visibility but no pixel output
+- `ws-character` entities are NOT in `frame.elements` — access via `scene.cast`
 
 ---
 
@@ -120,6 +126,7 @@ serialize(scene: WityScene): string
 - Returns `<?xml version="1.0" encoding="UTF-8"?>\n<wity-scene ...>`
 - Omits attributes equal to their defaults
 - Round-trips cleanly with `parse()`
+- `<ws-cast>` section serialized before layers when `scene.cast` is non-empty
 
 ---
 
@@ -130,7 +137,7 @@ validate(scene: WityScene): { valid: boolean, errors: string[], warnings: string
 ```
 
 - Never throws — returns result object
-- Checks: root types, layer types, element types, unit values, opacity range, enum membership, id uniqueness
+- Checks: root types, cast array, layer types, element types, unit values, opacity/volume range, enum membership, id uniqueness
 
 ---
 
@@ -160,7 +167,9 @@ ANIMATE_OUT_VALUES // ['none', 'fade', 'fade-up', 'fade-down', 'slide-left', 'sl
 ANCHOR_VALUES      // ['top-left', 'top', 'top-right', 'left', 'center', 'right',
                    //  'bottom-left', 'bottom', 'bottom-right']
 
-ELEMENT_TAGS       // ['ws-text', 'ws-rect', 'ws-image']
+ELEMENT_TAGS       // ['ws-text', 'ws-rect', 'ws-image', 'ws-video', 'ws-audio']
+
+MEDIA_FIT_VALUES   // ['cover', 'contain', 'fill', 'none']
 ```
 
 ---
@@ -171,11 +180,12 @@ ELEMENT_TAGS       // ['ws-text', 'ws-rect', 'ws-image']
 
 ```js
 {
-  version: string,    // '1.0'
-  width:   number,    // canvas width px
-  height:  number,    // canvas height px
-  dur:     number,    // total duration seconds
-  layers:  WsLayer[],
+  version:  string,        // '1.0'
+  width:    number,        // canvas width px
+  height:   number,        // canvas height px
+  dur:      number,        // total duration seconds
+  layers:   WsLayer[],
+  cast:     WsCharacter[], // semantic entities (non-rendered)
 }
 ```
 
@@ -190,7 +200,7 @@ ELEMENT_TAGS       // ['ws-text', 'ws-rect', 'ws-image']
 }
 ```
 
-### WsElementBase (common to all elements)
+### WsElementBase (visual elements only)
 
 ```js
 {
@@ -251,6 +261,50 @@ WsElementBase & {
 }
 ```
 
+### WsVideo
+
+```js
+WsElementBase & {
+  tag:     'ws-video',
+  src:     string,
+  width:   string | number,
+  height:  string | number,
+  fit:     'cover' | 'contain' | 'fill' | 'none',
+  volume:  number,         // 0–1
+  trimIn:  number,         // seconds into source
+  trimOut: number | null,  // seconds into source; null = no trim
+  muted:   boolean,
+}
+```
+
+### WsAudio
+
+```js
+{
+  tag:     'ws-audio',
+  id:      string,
+  begin:   number,
+  dur:     number,
+  src:     string,
+  volume:  number,         // 0–1
+  loop:    boolean,
+  trimIn:  number,
+  trimOut: number | null,
+}
+```
+
+### WsCharacter
+
+```js
+{
+  id:           string,   // unique within scene.cast
+  name:         string,
+  role?:        string,
+  description?: string,
+  avatarUrl?:   string,
+}
+```
+
 ### ComputedFrame
 
 ```js
@@ -267,7 +321,7 @@ WsElementBase & {
 ```js
 {
   id:      string,
-  tag:     'ws-text' | 'ws-rect' | 'ws-image',
+  tag:     'ws-text' | 'ws-rect' | 'ws-image' | 'ws-video' | 'ws-audio',
   x:       number,    // pixels; anchor-adjusted + animation translate offset
   y:       number,
   opacity: number,    // element.opacity × layer.opacity × animation opacity
@@ -282,38 +336,27 @@ WsElementBase & {
 
 **ws-text**
 ```js
-{
-  fontSize:      number,   // px
-  fontFamily:    string,
-  fontWeight:    string,
-  color:         string,
-  textAlign:     'left' | 'center' | 'right',
-  lineHeight:    number,
-  maxWidth:      number | null,
-  letterSpacing: number,   // px
-}
+{ fontSize, fontFamily, fontWeight, color, textAlign, lineHeight, maxWidth, letterSpacing }
 ```
 
 **ws-rect**
 ```js
-{
-  width:       number,   // px
-  height:      number,
-  fill:        string,
-  stroke:      string | null,
-  strokeWidth: number,
-  rx:          number,
-}
+{ width, height, fill, stroke, strokeWidth, rx }
 ```
 
 **ws-image**
 ```js
-{
-  src:    string,
-  width:  number,   // px
-  height: number,
-  fit:    'cover' | 'contain' | 'fill' | 'none',
-}
+{ src, width, height, fit }
+```
+
+**ws-video**
+```js
+{ src, width, height, fit, volume, trimIn, trimOut, muted }
+```
+
+**ws-audio**
+```js
+{ src, volume, loop, trimIn, trimOut }
 ```
 
 ---
@@ -337,7 +380,7 @@ WsElementBase & {
 | z         | 0 |
 | opacity   | 1 |
 
-### Common element attributes
+### Common element attributes (visual elements)
 
 | Attribute    | Default    |
 |--------------|------------|
@@ -366,8 +409,6 @@ WsElementBase & {
 | max-width      | (none) |
 | letter-spacing | 0 |
 
-Text content is the element's text node.
-
 ### `<ws-rect>` attributes
 
 | Attribute    | Default     |
@@ -387,6 +428,42 @@ Text content is the element's text node.
 | width     | 100% |
 | height    | 100% |
 | fit       | cover |
+
+### `<ws-video>` attributes
+
+| Attribute | Default |
+|-----------|---------|
+| src       | required |
+| width     | 100% |
+| height    | 100% |
+| fit       | cover |
+| volume    | 1 |
+| trim-in   | 0 |
+| trim-out  | (none) |
+| muted     | false |
+
+### `<ws-audio>` attributes
+
+| Attribute | Default  |
+|-----------|----------|
+| id        | auto |
+| begin     | 0 |
+| dur       | Infinity |
+| src       | required |
+| volume    | 1 |
+| loop      | false |
+| trim-in   | 0 |
+| trim-out  | (none) |
+
+### `<ws-character>` attributes (inside `<ws-cast>`)
+
+| Attribute   | Required |
+|-------------|----------|
+| id          | yes |
+| name        | yes |
+| role        | no |
+| description | no |
+| avatar-url  | no |
 
 ---
 

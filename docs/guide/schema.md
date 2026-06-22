@@ -15,6 +15,13 @@
 | `height`  | number | yes      | Canvas height in pixels |
 | `dur`     | number | yes      | Total duration in seconds |
 
+## Document children
+
+The root `<wity-scene>` element accepts two types of direct children:
+
+- `<ws-cast>` — optional; contains `<ws-character>` metadata entities
+- `<ws-layer>` — one or more visual/audio composition layers
+
 ## Layers
 
 ```xml
@@ -31,7 +38,7 @@
 
 ## Common element attributes
 
-All elements share these attributes:
+Visual elements (`ws-text`, `ws-rect`, `ws-image`, `ws-video`) share all of these. `ws-audio` shares only the temporal subset (`id`, `begin`, `dur`).
 
 | Attribute      | Type        | Default    | Description |
 |----------------|-------------|------------|-------------|
@@ -111,7 +118,7 @@ Text content is the element's text node.
 ## `<ws-image>`
 
 ```xml
-<ws-image src="https://..." width="100%" height="100%" fit="cover" />
+<ws-image src="https://..." width="100%" height="100%" fit="cover" begin="2" dur="4" />
 ```
 
 | Attribute | Type   | Default   |
@@ -125,29 +132,128 @@ Text content is the element's text node.
 
 ---
 
-## Full example — film credits overlay
+## `<ws-video>`
+
+A video clip element — positioned and temporally placed within a layer. Extends all common element attributes.
+
+```xml
+<ws-video
+  src="https://cdn.example.com/clip.mp4"
+  width="100%" height="100%" fit="cover"
+  begin="0" dur="8"
+  volume="0.8" trim-in="2.5" />
+```
+
+| Attribute  | Type    | Default   | Description |
+|------------|---------|-----------|-------------|
+| `src`      | string  | required  | Video file URL |
+| `width`    | unit    | `"100%"`  | Display width |
+| `height`   | unit    | `"100%"`  | Display height |
+| `fit`      | enum    | `"cover"` | Object-fit: `cover` · `contain` · `fill` · `none` |
+| `volume`   | number  | `1`       | Playback volume 0–1 |
+| `trim-in`  | number  | `0`       | Start offset within the source file (seconds) |
+| `trim-out` | number  | none      | End offset within the source file (seconds); omit = play to end |
+| `muted`    | boolean | `false`   | Mute audio track |
+
+---
+
+## `<ws-audio>`
+
+A temporal audio track element — lives inside a `ws-layer` but has no visual output and no spatial attributes.
+
+```xml
+<ws-audio
+  src="https://cdn.example.com/music.mp3"
+  begin="0" dur="30"
+  volume="0.4" loop="false" />
+```
+
+| Attribute  | Type    | Default  | Description |
+|------------|---------|----------|-------------|
+| `id`       | string  | auto     | Unique element identifier |
+| `begin`    | number  | `0`      | Start time in seconds |
+| `dur`      | number  | ∞        | Duration in seconds |
+| `src`      | string  | required | Audio file URL |
+| `volume`   | number  | `1`      | Playback volume 0–1 |
+| `loop`     | boolean | `false`  | Loop the audio |
+| `trim-in`  | number  | `0`      | Start offset within the source file (seconds) |
+| `trim-out` | number  | none     | End offset within the source file (seconds); omit = play to end |
+
+---
+
+## `<ws-cast>` and `<ws-character>`
+
+The optional `<ws-cast>` section contains semantic character entities. These are **not rendered** — they travel with the scene document and are consumed by authoring tools, AI agents, players, and compilers.
+
+```xml
+<ws-cast>
+  <ws-character id="char1" name="Sarah" role="Host"
+                description="Energetic, warm presenter"
+                avatar-url="https://cdn.example.com/sarah.jpg" />
+  <ws-character id="char2" name="Alex" role="Narrator" />
+</ws-cast>
+```
+
+| Attribute     | Type   | Required | Description |
+|---------------|--------|----------|-------------|
+| `id`          | string | yes      | Unique character identifier |
+| `name`        | string | yes      | Display name |
+| `role`        | string | no       | Role in the scene (e.g. "Host", "Narrator") |
+| `description` | string | no       | Free-form notes or personality description |
+| `avatar-url`  | string | no       | URL to avatar or reference image |
+
+In the parsed `WityScene` object, characters are accessed as `scene.cast: WsCharacter[]`.
+
+---
+
+## Full example — product video scene
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<wity-scene version="1.0" width="1920" height="1080" dur="8.0">
+<wity-scene version="1.0" width="1080" height="1920" dur="15.0">
 
-  <!-- Dark scrim -->
-  <ws-layer id="scrim" z="0">
-    <ws-rect x="0" y="0" width="100%" height="100%"
-             fill="#000000" opacity="0.65" />
+  <!-- Cast metadata (non-rendered) -->
+  <ws-cast>
+    <ws-character id="char1" name="Maya" role="Host"
+                  description="Upbeat product presenter" />
+  </ws-cast>
+
+  <!-- Background video -->
+  <ws-layer id="video" z="0">
+    <ws-video src="https://cdn.example.com/bg-clip.mp4"
+              width="100%" height="100%" fit="cover"
+              begin="0" dur="15" volume="0" />
   </ws-layer>
 
-  <!-- Title card -->
-  <ws-layer id="title" z="10">
+  <!-- Music bed -->
+  <ws-layer id="audio" z="1">
+    <ws-audio src="https://cdn.example.com/music.mp3"
+              begin="0" dur="15" volume="0.35" />
+  </ws-layer>
+
+  <!-- Poster image — appears mid-scene -->
+  <ws-layer id="poster" z="2">
+    <ws-image src="https://cdn.example.com/product.jpg"
+              x="50%" y="45%" anchor="center"
+              width="80%" height="60%" fit="contain"
+              begin="4" dur="6"
+              animate-in="fade" animate-dur="0.5" />
+  </ws-layer>
+
+  <!-- Text overlays -->
+  <ws-layer id="graphics" z="10">
+    <ws-rect x="0" y="0" width="100%" height="100%"
+             fill="#000000" opacity="0.4"
+             begin="0" dur="3" animate-out="fade" animate-dur="0.5" />
     <ws-text x="50%" y="38%" anchor="center"
-             font-size="6%" font-weight="bold" color="#ffffff"
-             animate-in="fade-up" animate-dur="0.7">
-      Nocturne
+             font-size="7%" font-weight="bold" color="#ffffff"
+             animate-in="fade-up" animate-dur="0.6">
+      New Collection
     </ws-text>
-    <ws-text x="50%" y="50%" anchor="center"
-             font-size="2.5%" color="#cccccc" letter-spacing="0.2em"
-             animate-in="fade" begin="0.4" animate-dur="0.6">
-      A film by Apratim
+    <ws-text x="50%" y="52%" anchor="center"
+             font-size="3%" color="#cccccc"
+             animate-in="fade" begin="0.4" animate-dur="0.5">
+      Spring 2026
     </ws-text>
   </ws-layer>
 

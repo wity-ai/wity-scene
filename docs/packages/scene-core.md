@@ -29,7 +29,7 @@ Throws if the XML is malformed or the root element is not `<wity-scene>`.
 ```js
 import { parse } from '@wity/scene-core';
 const scene = parse(xmlString);
-// → { version: '1.0', width: 1920, height: 1080, dur: 8, layers: [...] }
+// → { version: '1.0', width: 1920, height: 1080, dur: 8, layers: [...], cast: [...] }
 ```
 
 ---
@@ -50,6 +50,8 @@ const frame = evaluate(scene, 1.5);
 // → { t: 1.5, width: 1920, height: 1080, elements: [...] }
 ```
 
+Note: `ws-audio` elements appear in `frame.elements` with `visible` set correctly for their temporal window but produce no pixel output. `ws-character` entities are not in `elements` — access them via `scene.cast`.
+
 ---
 
 ## `serialize(scene)`
@@ -65,6 +67,8 @@ import { serialize } from '@wity/scene-core';
 const xml = serialize(scene);
 // → '<?xml version="1.0" encoding="UTF-8"?>\n<wity-scene ...'
 ```
+
+The `<ws-cast>` section is serialized before layers if `scene.cast` is non-empty.
 
 ---
 
@@ -111,11 +115,12 @@ All JSDoc types are in `schema/types.js` and re-exported from the package root.
 
 ```js
 {
-  version: string,    // "1.0"
-  width:   number,    // canvas width px
-  height:  number,    // canvas height px
-  dur:     number,    // total duration seconds
-  layers:  WsLayer[],
+  version:  string,       // "1.0"
+  width:    number,       // canvas width px
+  height:   number,       // canvas height px
+  dur:      number,       // total duration seconds
+  layers:   WsLayer[],
+  cast:     WsCharacter[], // semantic entities (non-rendered)
 }
 ```
 
@@ -127,6 +132,66 @@ All JSDoc types are in `schema/types.js` and re-exported from the package root.
   z:        number,
   opacity:  number,   // 0–1
   elements: WsElement[],
+}
+```
+
+### `WsElement`
+
+```
+WsText | WsRect | WsImage | WsVideo | WsAudio
+```
+
+All visual elements (`WsText`, `WsRect`, `WsImage`, `WsVideo`) share `WsElementBase`:
+
+```js
+{
+  id, x, y, anchor, begin, dur, z, opacity, animateIn, animateOut, animateDur
+}
+```
+
+`WsAudio` has a minimal base: `{ id, begin, dur }` — no spatial attributes.
+
+### `WsVideo`
+
+```js
+WsElementBase & {
+  tag:     'ws-video',
+  src:     string,
+  width:   string | number,
+  height:  string | number,
+  fit:     'cover' | 'contain' | 'fill' | 'none',
+  volume:  number,         // 0–1
+  trimIn:  number,         // seconds into source file
+  trimOut: number | null,  // seconds into source file; null = no trim
+  muted:   boolean,
+}
+```
+
+### `WsAudio`
+
+```js
+{
+  tag:     'ws-audio',
+  id:      string,
+  begin:   number,
+  dur:     number,
+  src:     string,
+  volume:  number,         // 0–1
+  loop:    boolean,
+  trimIn:  number,
+  trimOut: number | null,
+}
+```
+
+### `WsCharacter`
+
+```js
+{
+  id:           string,
+  name:         string,
+  role?:        string,
+  description?: string,
+  avatarUrl?:   string,
 }
 ```
 
@@ -146,8 +211,8 @@ All JSDoc types are in `schema/types.js` and re-exported from the package root.
 ```js
 {
   id:      string,
-  tag:     'ws-text' | 'ws-rect' | 'ws-image',
-  x:       number,    // pixels, anchor-adjusted + animation offset
+  tag:     'ws-text' | 'ws-rect' | 'ws-image' | 'ws-video' | 'ws-audio',
+  x:       number,    // pixels, anchor-adjusted + animation offset (visual elements)
   y:       number,
   opacity: number,    // element × layer × animation opacity
   z:       number,    // layer.z * 1000 + el.z
