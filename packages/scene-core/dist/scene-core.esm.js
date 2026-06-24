@@ -1084,6 +1084,10 @@ function evaluateElement(el, t, layerOpacity, W, H, effectiveZ) {
     opacity,
     z:       effectiveZ,
     visible,
+    /** Scene-absolute time (seconds) when this element begins. */
+    begin:   el.begin,
+    /** Element duration in seconds (Infinity if open-ended). */
+    dur:     Number.isFinite(el.dur) ? el.dur : Infinity,
     props,
     content,
   };
