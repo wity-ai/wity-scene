@@ -1,5 +1,5 @@
 import { EventBus, SceneStore, TimelineState } from '@wity/scene-headless';
-import { parse, serialize, evaluate } from '@wity/scene-core';
+import { parse, evaluate, serialize } from '@wity/scene-core';
 
 /**
  * @file HeadlessPlayer.js
@@ -196,6 +196,21 @@ class HeadlessPlayer extends EventBus {
 
   /** @returns {number} 0–1 */
   get progress()    { return this._timeline?.progress ?? 0; }
+
+  /**
+   * Synchronously evaluate the scene at time t and return the ComputedFrame.
+   *
+   * Use this for static snapshots — design studio background, thumbnail generation,
+   * preview tiles, etc. For continuous playback, use play()/seek() with the 'frame'
+   * event instead.
+   *
+   * @param {number} [t=0] - Time in seconds (clamped to [0, scene.dur])
+   * @returns {import('@wity/scene-core').ComputedFrame | null} null if no scene loaded
+   */
+  getFrame(t = 0) {
+    if (!this._store) return null;
+    return evaluate(this._store.getScene(), t);
+  }
 
   /**
    * Serialize current scene to XML. Useful for persisting mutations.

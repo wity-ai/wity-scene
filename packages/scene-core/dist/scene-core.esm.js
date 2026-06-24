@@ -2,15 +2,20 @@
  * @file schema/types.js
  * JSDoc type definitions and runtime constants for the wity-scene v1.0 schema.
  *
- * A WityScene document is a deterministic spatial composition:
+ * A WityScene document is a deterministic spatial-temporal composition:
  *   f(scene, t) → ComputedFrame
  *
  * XML representation:
  *   <wity-scene version="1.0" width="1920" height="1080" dur="8.0">
- *     <ws-layer id="background" z="0">
- *       <ws-rect x="0" y="0" width="100%" height="100%" fill="#000000" />
+ *     <ws-cast>
+ *       <ws-character id="char1" name="Sarah" role="host" />
+ *     </ws-cast>
+ *     <ws-layer id="media" z="0">
+ *       <ws-video src="clip.mp4" width="100%" height="100%" begin="0" dur="8" />
+ *       <ws-audio src="music.mp3" begin="0" dur="8" volume="0.4" />
  *     </ws-layer>
- *     <ws-layer id="title" z="10">
+ *     <ws-layer id="graphics" z="10">
+ *       <ws-image src="poster.jpg" x="50%" y="50%" anchor="center" begin="2" dur="4" />
  *       <ws-text x="50%" y="40%" anchor="center" animate-in="fade-up" animate-dur="0.6">
  *         Opening Night
  *       </ws-text>
@@ -38,9 +43,16 @@ const ANCHOR_VALUES = /** @type {const} */ ([
   'bottom-left', 'bottom', 'bottom-right',
 ]);
 
-// ─── Element tags ────────────────────────────────────────────────────────────
+// ─── Media fit types ─────────────────────────────────────────────────────────
 
-const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-image']);
+/** @type {readonly string[]} */
+const MEDIA_FIT_VALUES = /** @type {const} */ (['cover', 'contain', 'fill', 'none']);
+
+// ─── Element tags ────────────────────────────────────────────────────────────
+// Visual elements (rendered inside ws-layer).
+// ws-audio has no visual output but is temporal and lives in layers.
+
+const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-image', 'ws-video', 'ws-audio']);
 
 // ─── JSDoc types ─────────────────────────────────────────────────────────────
 
@@ -63,7 +75,11 @@ const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-image']);
  */
 
 /**
- * Common positional and temporal attributes shared by all elements.
+ * @typedef {'cover'|'contain'|'fill'|'none'} MediaFit
+ */
+
+/**
+ * Common positional and temporal attributes shared by visual elements.
  * @typedef {Object} WsElementBase
  * @property {string}      id          - Unique element identifier (auto-assigned if absent in XML)
  * @property {UnitValue}   x           - Horizontal position
@@ -111,30 +127,74 @@ const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-image']);
  *   src:         string,
  *   width:       UnitValue,
  *   height:      UnitValue,
- *   fit:         'cover'|'contain'|'fill'|'none',
+ *   fit:         MediaFit,
  * }} WsImage
  */
 
 /**
- * @typedef {WsText | WsRect | WsImage} WsElement
+ * A video clip element — positioned and temporally placed within a layer.
+ * @typedef {WsElementBase & {
+ *   tag:     'ws-video',
+ *   src:     string,
+ *   width:   UnitValue,
+ *   height:  UnitValue,
+ *   fit:     MediaFit,
+ *   volume:  number,
+ *   trimIn:  number,
+ *   trimOut: number | null,
+ *   muted:   boolean,
+ * }} WsVideo
+ */
+
+/**
+ * An audio track element — temporal only, no visual output.
+ * Lives inside a ws-layer for document organisation but has no spatial position.
+ * @typedef {Object} WsAudio
+ * @property {string}        tag     - 'ws-audio'
+ * @property {string}        id      - Unique identifier
+ * @property {number}        begin   - Start time in seconds (default 0)
+ * @property {number}        dur     - Duration in seconds; Infinity = full scene duration
+ * @property {string}        src     - Audio file URL
+ * @property {number}        volume  - 0–1 (default 1)
+ * @property {boolean}       loop    - Whether to loop (default false)
+ * @property {number}        trimIn  - Trim start offset in seconds (default 0)
+ * @property {number | null} trimOut - Trim end offset in seconds from start; null = no trim
+ */
+
+/**
+ * @typedef {WsText | WsRect | WsImage | WsVideo | WsAudio} WsElement
  */
 
 /**
  * @typedef {Object} WsLayer
  * @property {string}      id       - Layer identifier
+ * @property {string}      [label]  - Human-readable display name; optional, falls back to id in UIs
  * @property {number}      z        - Layer z-index
  * @property {number}      opacity  - Layer-level opacity (multiplied with element opacity)
  * @property {WsElement[]} elements
  */
 
 /**
+ * A semantic character entity within the scene.
+ * Not rendered — consumed by authoring tools, AI agents, players, and compilers.
+ * Stored in the <ws-cast> section of the scene document.
+ * @typedef {Object} WsCharacter
+ * @property {string}  id           - Unique character identifier
+ * @property {string}  name         - Display name
+ * @property {string}  [role]       - Role in the scene (e.g. "host", "narrator")
+ * @property {string}  [description] - Free-form description or notes
+ * @property {string}  [avatarUrl]  - URL to avatar/reference image
+ */
+
+/**
  * Root scene document — the parsed, validated in-memory representation.
  * @typedef {Object} WityScene
- * @property {string}    version  - Schema version, e.g. "1.0"
- * @property {number}    width    - Canvas width in pixels
- * @property {number}    height   - Canvas height in pixels
- * @property {number}    dur      - Total duration in seconds
- * @property {WsLayer[]} layers
+ * @property {string}        version    - Schema version, e.g. "1.0"
+ * @property {number}        width      - Canvas width in pixels
+ * @property {number}        height     - Canvas height in pixels
+ * @property {number}        dur        - Total duration in seconds
+ * @property {WsLayer[]}     layers
+ * @property {WsCharacter[]} cast       - Semantic character entities (non-rendered metadata)
  */
 
 /**
@@ -254,6 +314,12 @@ function enumAttr(el, name, allowed, fallback) {
   return v;
 }
 
+function boolAttr(el, name, fallback) {
+  const v = el.getAttribute(name);
+  if (v === null) return fallback;
+  return v === 'true' || v === '1';
+}
+
 let _elementCounter = 0;
 function nextId(tag) {
   return `${tag}-${++_elementCounter}`;
@@ -262,7 +328,7 @@ function nextId(tag) {
 // ─── Element parsers ─────────────────────────────────────────────────────────
 
 /**
- * Parse common WsElementBase attributes.
+ * Parse common WsElementBase attributes (visual elements only).
  * @param {Element} el
  * @returns {import('../schema/types.js').WsElementBase}
  */
@@ -321,7 +387,38 @@ function parseImage(el) {
     src:    attr(el, 'src', ''),
     width:  unitAttr(el, 'width', '100%'),
     height: unitAttr(el, 'height', '100%'),
-    fit:    enumAttr(el, 'fit', ['cover', 'contain', 'fill', 'none'], 'cover'),
+    fit:    enumAttr(el, 'fit', MEDIA_FIT_VALUES, 'cover'),
+  };
+}
+
+/** @param {Element} el @returns {import('../schema/types.js').WsVideo} */
+function parseVideo(el) {
+  return {
+    ...parseElementBase(el),
+    tag:     'ws-video',
+    src:     attr(el, 'src', ''),
+    width:   unitAttr(el, 'width', '100%'),
+    height:  unitAttr(el, 'height', '100%'),
+    fit:     enumAttr(el, 'fit', MEDIA_FIT_VALUES, 'cover'),
+    volume:  numAttr(el, 'volume', 1),
+    trimIn:  numAttr(el, 'trim-in', 0),
+    trimOut: el.hasAttribute('trim-out') ? numAttr(el, 'trim-out', null) : null,
+    muted:   boolAttr(el, 'muted', false),
+  };
+}
+
+/** @param {Element} el @returns {import('../schema/types.js').WsAudio} */
+function parseAudio(el) {
+  return {
+    tag:     'ws-audio',
+    id:      attr(el, 'id') || nextId('ws-audio'),
+    begin:   numAttr(el, 'begin', 0),
+    dur:     numAttr(el, 'dur', Infinity),
+    src:     attr(el, 'src', ''),
+    volume:  numAttr(el, 'volume', 1),
+    loop:    boolAttr(el, 'loop', false),
+    trimIn:  numAttr(el, 'trim-in', 0),
+    trimOut: el.hasAttribute('trim-out') ? numAttr(el, 'trim-out', null) : null,
   };
 }
 
@@ -331,8 +428,38 @@ function parseElement(el) {
     case 'ws-text':  return parseText(el);
     case 'ws-rect':  return parseRect(el);
     case 'ws-image': return parseImage(el);
+    case 'ws-video': return parseVideo(el);
+    case 'ws-audio': return parseAudio(el);
     default:         return null;
   }
+}
+
+// ─── Cast parser ──────────────────────────────────────────────────────────────
+
+/** @param {Element} el @returns {import('../schema/types.js').WsCharacter} */
+function parseCharacter(el) {
+  return {
+    id:          attr(el, 'id') || nextId('ws-character'),
+    name:        attr(el, 'name', ''),
+    ...(el.hasAttribute('role')        && { role:        attr(el, 'role') }),
+    ...(el.hasAttribute('description') && { description: attr(el, 'description') }),
+    ...(el.hasAttribute('avatar-url')  && { avatarUrl:   attr(el, 'avatar-url') }),
+  };
+}
+
+/**
+ * Parse a <ws-cast> element into an array of WsCharacter objects.
+ * @param {Element} el
+ * @returns {import('../schema/types.js').WsCharacter[]}
+ */
+function parseCast(el) {
+  const characters = [];
+  for (const child of el.children) {
+    if (child.tagName === 'ws-character') {
+      characters.push(parseCharacter(child));
+    }
+  }
+  return characters;
 }
 
 // ─── Layer parser ─────────────────────────────────────────────────────────────
@@ -344,8 +471,10 @@ function parseLayer(el) {
     const parsed = parseElement(child);
     if (parsed) elements.push(parsed);
   }
+  const rawLabel = el.getAttribute('label');
   return {
     id:       attr(el, 'id') || `layer-${elements.length}`,
+    ...(rawLabel ? { label: rawLabel } : {}),
     z:        numAttr(el, 'z', 0),
     opacity:  numAttr(el, 'opacity', 1),
     elements,
@@ -384,13 +513,17 @@ function parse(xml) {
   const dur     = numAttr(root, 'dur',    0);
 
   const layers = [];
+  let cast = [];
+
   for (const child of root.children) {
     if (child.tagName === 'ws-layer') {
       layers.push(parseLayer(child));
+    } else if (child.tagName === 'ws-cast') {
+      cast = parseCast(child);
     }
   }
 
-  return { version, width, height, dur, layers };
+  return { version, width, height, dur, layers, cast };
 }
 
 /**
@@ -407,8 +540,8 @@ function parse(xml) {
  * Format a key/value pair as an XML attribute string.
  * Skips null, undefined, and values equal to their defaults.
  * @param {string} name
- * @param {string|number|null|undefined} value
- * @param {string|number|null} [defaultValue] - omit the attr if value === default
+ * @param {string|number|boolean|null|undefined} value
+ * @param {string|number|boolean|null} [defaultValue] - omit the attr if value === default
  */
 function attrib(name, value, defaultValue = undefined) {
   if (value == null) return '';
@@ -440,7 +573,7 @@ function ind(depth) {
 // ─── Element serializers ─────────────────────────────────────────────────────
 
 /**
- * Serialize the common WsElementBase attributes.
+ * Serialize the common WsElementBase attributes (visual elements).
  * @param {import('../schema/types.js').WsElementBase} el
  */
 function baseAttribs(el) {
@@ -502,14 +635,70 @@ function serializeImage(el, depth) {
   return `${ind(depth)}<ws-image${attrs} />`;
 }
 
+/** @param {import('../schema/types.js').WsVideo} el @param {number} depth */
+function serializeVideo(el, depth) {
+  const attrs = baseAttribs(el) + [
+    attrib('src',      el.src),
+    attrib('width',    el.width,   '100%'),
+    attrib('height',   el.height,  '100%'),
+    attrib('fit',      el.fit,     'cover'),
+    attrib('volume',   el.volume,  1),
+    attrib('trim-in',  el.trimIn,  0),
+    attrib('trim-out', el.trimOut  ?? undefined),
+    attrib('muted',    el.muted,   false),
+  ].join('');
+  return `${ind(depth)}<ws-video${attrs} />`;
+}
+
+/** @param {import('../schema/types.js').WsAudio} el @param {number} depth */
+function serializeAudio(el, depth) {
+  const attrs = [
+    attrib('id',       el.id),
+    attrib('begin',    el.begin,  0),
+    attrib('dur',      Number.isFinite(el.dur) ? el.dur : undefined),
+    attrib('src',      el.src),
+    attrib('volume',   el.volume, 1),
+    attrib('loop',     el.loop,   false),
+    attrib('trim-in',  el.trimIn, 0),
+    attrib('trim-out', el.trimOut ?? undefined),
+  ].join('');
+  return `${ind(depth)}<ws-audio${attrs} />`;
+}
+
 /** @param {import('../schema/types.js').WsElement} el @param {number} depth */
 function serializeElement(el, depth) {
   switch (el.tag) {
     case 'ws-text':  return serializeText(el, depth);
     case 'ws-rect':  return serializeRect(el, depth);
     case 'ws-image': return serializeImage(el, depth);
+    case 'ws-video': return serializeVideo(el, depth);
+    case 'ws-audio': return serializeAudio(el, depth);
     default:         return '';
   }
+}
+
+// ─── Cast serializer ──────────────────────────────────────────────────────────
+
+/** @param {import('../schema/types.js').WsCharacter} char @param {number} depth */
+function serializeCharacter(char, depth) {
+  const attrs = [
+    attrib('id',          char.id),
+    attrib('name',        char.name),
+    attrib('role',        char.role        ?? undefined),
+    attrib('description', char.description ?? undefined),
+    attrib('avatar-url',  char.avatarUrl   ?? undefined),
+  ].join('');
+  return `${ind(depth)}<ws-character${attrs} />`;
+}
+
+/**
+ * @param {import('../schema/types.js').WsCharacter[]} cast
+ * @param {number} depth
+ */
+function serializeCast(cast, depth) {
+  if (cast.length === 0) return '';
+  const children = cast.map((c) => serializeCharacter(c, depth + 1)).join('\n');
+  return `${ind(depth)}<ws-cast>\n${children}\n${ind(depth)}</ws-cast>`;
 }
 
 // ─── Layer serializer ─────────────────────────────────────────────────────────
@@ -518,6 +707,7 @@ function serializeElement(el, depth) {
 function serializeLayer(layer, depth) {
   const attrs = [
     attrib('id',      layer.id),
+    attrib('label',   layer.label || undefined),
     attrib('z',       layer.z,       0),
     attrib('opacity', layer.opacity, 1),
   ].join('');
@@ -550,15 +740,19 @@ function serialize(scene) {
     attrib('dur',     scene.dur),
   ].join('');
 
-  if (scene.layers.length === 0) {
+  const cast   = scene.cast   ?? [];
+  const layers = scene.layers ?? [];
+
+  const castXml   = serializeCast(cast, 1);
+  const layersXml = layers.map((l) => serializeLayer(l, 1)).join('\n');
+
+  const bodyParts = [castXml, layersXml].filter(Boolean);
+
+  if (bodyParts.length === 0) {
     return `<?xml version="1.0" encoding="UTF-8"?>\n<wity-scene${rootAttribs} />`;
   }
 
-  const layers = scene.layers
-    .map((l) => serializeLayer(l, 1))
-    .join('\n');
-
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<wity-scene${rootAttribs}>\n${layers}\n</wity-scene>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<wity-scene${rootAttribs}>\n${bodyParts.join('\n')}\n</wity-scene>`;
 }
 
 /**
@@ -814,6 +1008,24 @@ function resolveImageProps(el, W, H) {
   };
 }
 
+/**
+ * @param {import('../schema/types.js').WsVideo} el
+ * @param {number} W
+ * @param {number} H
+ */
+function resolveVideoProps(el, W, H) {
+  return {
+    src:     el.src,
+    width:   resolveUnit(el.width, W),
+    height:  resolveUnit(el.height, H),
+    fit:     el.fit,
+    volume:  el.volume,
+    trimIn:  el.trimIn,
+    trimOut: el.trimOut,
+    muted:   el.muted,
+  };
+}
+
 // ─── Element evaluator ────────────────────────────────────────────────────────
 
 /**
@@ -826,6 +1038,9 @@ function resolveImageProps(el, W, H) {
  * @returns {import('../schema/types.js').ComputedElement}
  */
 function evaluateElement(el, t, layerOpacity, W, H, effectiveZ) {
+  // ws-audio has no visual representation — skip to avoid NaN z/opacity in the frame.
+  if (el.tag === 'ws-audio') return null;
+
   const start   = el.begin;
   const end     = el.begin + (Number.isFinite(el.dur) ? el.dur : Infinity);
   const visible = t >= start && t < end;
@@ -835,9 +1050,9 @@ function evaluateElement(el, t, layerOpacity, W, H, effectiveZ) {
   const baseX = resolveX(el.x, W);
   const baseY = resolveY(el.y, H);
 
-  // Resolve element size for anchor calculation (use props if rect/image, 0 for text)
+  // Resolve element size for anchor calculation (use props if rect/image/video, 0 for text)
   let elW = 0, elH = 0;
-  if (el.tag === 'ws-rect' || el.tag === 'ws-image') {
+  if (el.tag === 'ws-rect' || el.tag === 'ws-image' || el.tag === 'ws-video') {
     elW = resolveUnit(el.width,  W);
     elH = resolveUnit(el.height, H);
   }
@@ -855,6 +1070,9 @@ function evaluateElement(el, t, layerOpacity, W, H, effectiveZ) {
       break;
     case 'ws-image':
       props = resolveImageProps(el, W, H);
+      break;
+    case 'ws-video':
+      props = resolveVideoProps(el, W, H);
       break;
   }
 
@@ -890,7 +1108,8 @@ function evaluate(scene, t) {
     const effectiveLayerZ = layer.z;
     for (const el of layer.elements) {
       const effectiveZ = effectiveLayerZ * 1000 + el.z;
-      elements.push(evaluateElement(el, clampedT, layer.opacity, W, H, effectiveZ));
+      const computed = evaluateElement(el, clampedT, layer.opacity, W, H, effectiveZ);
+      if (computed) elements.push(computed);
     }
   }
 
@@ -939,7 +1158,11 @@ function isOpacity(v) {
   return typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
 }
 
-// ─── Element validators ───────────────────────────────────────────────────────
+function isVolume(v) {
+  return typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
+}
+
+// ─── Base element validator ───────────────────────────────────────────────────
 
 /**
  * @param {import('../schema/types.js').WsElementBase} el
@@ -972,6 +1195,8 @@ function validateBase(el, path, errors, warnings) {
     errors.push(`${path}: animate-dur must be a non-negative number`);
   }
 }
+
+// ─── Element validators ───────────────────────────────────────────────────────
 
 /** @param {import('../schema/types.js').WsText} el @param {string} path */
 function validateText(el, path, errors, warnings) {
@@ -1011,8 +1236,85 @@ function validateImage(el, path, errors, warnings) {
   }
   if (!isUnitValue(el.width))  errors.push(`${path}: width is not a valid unit value`);
   if (!isUnitValue(el.height)) errors.push(`${path}: height is not a valid unit value`);
-  if (!['cover', 'contain', 'fill', 'none'].includes(el.fit)) {
-    errors.push(`${path}: fit must be cover, contain, fill, or none`);
+  if (!MEDIA_FIT_VALUES.includes(el.fit)) {
+    errors.push(`${path}: fit must be one of: ${MEDIA_FIT_VALUES.join(', ')}`);
+  }
+}
+
+/** @param {import('../schema/types.js').WsVideo} el @param {string} path */
+function validateVideo(el, path, errors, warnings) {
+  validateBase(el, path, errors, warnings);
+  if (typeof el.src !== 'string' || !el.src) {
+    errors.push(`${path}: src must be a non-empty string`);
+  }
+  if (!isUnitValue(el.width))  errors.push(`${path}: width is not a valid unit value`);
+  if (!isUnitValue(el.height)) errors.push(`${path}: height is not a valid unit value`);
+  if (!MEDIA_FIT_VALUES.includes(el.fit)) {
+    errors.push(`${path}: fit must be one of: ${MEDIA_FIT_VALUES.join(', ')}`);
+  }
+  if (!isVolume(el.volume)) errors.push(`${path}: volume must be in [0, 1]`);
+  if (!isNonNegative(el.trimIn)) errors.push(`${path}: trim-in must be non-negative`);
+  if (el.trimOut !== null && !isNonNegative(el.trimOut)) {
+    errors.push(`${path}: trim-out must be non-negative or null`);
+  }
+  if (typeof el.muted !== 'boolean') errors.push(`${path}: muted must be a boolean`);
+}
+
+/** @param {import('../schema/types.js').WsAudio} el @param {string} path */
+function validateAudio(el, path, errors, warnings) {
+  if (typeof el.id !== 'string' || !el.id) {
+    errors.push(`${path}: id must be a non-empty string`);
+  }
+  if (!isNonNegative(el.begin)) errors.push(`${path}: begin must be a non-negative number`);
+  if (el.dur !== Infinity && !isNonNegative(el.dur)) {
+    errors.push(`${path}: dur must be a non-negative number or Infinity`);
+  }
+  if (typeof el.src !== 'string' || !el.src) {
+    errors.push(`${path}: src must be a non-empty string`);
+  }
+  if (!isVolume(el.volume)) errors.push(`${path}: volume must be in [0, 1]`);
+  if (typeof el.loop !== 'boolean') errors.push(`${path}: loop must be a boolean`);
+  if (!isNonNegative(el.trimIn)) errors.push(`${path}: trim-in must be non-negative`);
+  if (el.trimOut !== null && !isNonNegative(el.trimOut)) {
+    errors.push(`${path}: trim-out must be non-negative or null`);
+  }
+}
+
+// ─── Cast validator ───────────────────────────────────────────────────────────
+
+/**
+ * @param {import('../schema/types.js').WsCharacter[]} cast
+ * @param {string[]} errors
+ * @param {string[]} warnings
+ */
+function validateCast(cast, errors, warnings) {
+  if (!Array.isArray(cast)) {
+    errors.push('scene.cast must be an array');
+    return;
+  }
+
+  const seenIds = new Set();
+  for (let i = 0; i < cast.length; i++) {
+    const char = cast[i];
+    const path = `cast[${i}]`;
+
+    if (!char || typeof char !== 'object') {
+      errors.push(`${path}: must be an object`);
+      continue;
+    }
+    if (typeof char.id !== 'string' || !char.id) {
+      errors.push(`${path}: id must be a non-empty string`);
+    } else if (seenIds.has(char.id)) {
+      errors.push(`${path}: id "${char.id}" is not unique within the cast`);
+    } else {
+      seenIds.add(char.id);
+    }
+    if (typeof char.name !== 'string' || !char.name) {
+      errors.push(`${path}: name must be a non-empty string`);
+    }
+    if (char.role        !== undefined && typeof char.role        !== 'string') errors.push(`${path}: role must be a string`);
+    if (char.description !== undefined && typeof char.description !== 'string') errors.push(`${path}: description must be a string`);
+    if (char.avatarUrl   !== undefined && typeof char.avatarUrl   !== 'string') errors.push(`${path}: avatar-url must be a string`);
   }
 }
 
@@ -1041,11 +1343,16 @@ function validate(scene) {
   if (!isFinitePositive(scene.dur))    errors.push('scene.dur must be a positive number');
   if (!Array.isArray(scene.layers))    errors.push('scene.layers must be an array');
 
+  // Cast (optional — treated as empty if absent)
+  if (scene.cast !== undefined) {
+    validateCast(scene.cast, errors);
+  }
+
   if (!Array.isArray(scene.layers)) {
     return { valid: errors.length === 0, errors, warnings };
   }
 
-  // Collect element ids for uniqueness check
+  // Collect element ids for uniqueness check across all layers
   const seenIds = new Set();
 
   for (let li = 0; li < scene.layers.length; li++) {
@@ -1058,6 +1365,9 @@ function validate(scene) {
     }
     if (typeof layer.id !== 'string' || !layer.id) {
       errors.push(`${lPath}: id must be a non-empty string`);
+    }
+    if (layer.label !== undefined && typeof layer.label !== 'string') {
+      warnings.push(`${lPath}: label must be a string if provided`);
     }
     if (!isOpacity(layer.opacity)) {
       errors.push(`${lPath}: opacity must be in [0, 1]`);
@@ -1080,17 +1390,20 @@ function validate(scene) {
         continue;
       }
 
-      // Duplicate id check
-      if (el.id && seenIds.has(el.id)) {
-        errors.push(`${ePath}: id "${el.id}" is not unique within the scene`);
-      } else if (el.id) {
-        seenIds.add(el.id);
+      // Duplicate id check (ws-audio uses id directly)
+      const elId = el.id;
+      if (elId && seenIds.has(elId)) {
+        errors.push(`${ePath}: id "${elId}" is not unique within the scene`);
+      } else if (elId) {
+        seenIds.add(elId);
       }
 
       switch (el.tag) {
         case 'ws-text':  validateText(el,  ePath, errors, warnings); break;
         case 'ws-rect':  validateRect(el,  ePath, errors, warnings); break;
         case 'ws-image': validateImage(el, ePath, errors, warnings); break;
+        case 'ws-video': validateVideo(el, ePath, errors, warnings); break;
+        case 'ws-audio': validateAudio(el, ePath, errors); break;
       }
     }
   }

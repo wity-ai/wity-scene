@@ -166,6 +166,24 @@ function resolveImageProps(el, W, H) {
   };
 }
 
+/**
+ * @param {import('../schema/types.js').WsVideo} el
+ * @param {number} W
+ * @param {number} H
+ */
+function resolveVideoProps(el, W, H) {
+  return {
+    src:     el.src,
+    width:   resolveUnit(el.width, W),
+    height:  resolveUnit(el.height, H),
+    fit:     el.fit,
+    volume:  el.volume,
+    trimIn:  el.trimIn,
+    trimOut: el.trimOut,
+    muted:   el.muted,
+  };
+}
+
 // ─── Element evaluator ────────────────────────────────────────────────────────
 
 /**
@@ -178,6 +196,9 @@ function resolveImageProps(el, W, H) {
  * @returns {import('../schema/types.js').ComputedElement}
  */
 function evaluateElement(el, t, layerOpacity, W, H, effectiveZ) {
+  // ws-audio has no visual representation — skip to avoid NaN z/opacity in the frame.
+  if (el.tag === 'ws-audio') return null;
+
   const start   = el.begin;
   const end     = el.begin + (Number.isFinite(el.dur) ? el.dur : Infinity);
   const visible = t >= start && t < end;
@@ -187,9 +208,9 @@ function evaluateElement(el, t, layerOpacity, W, H, effectiveZ) {
   const baseX = resolveX(el.x, W);
   const baseY = resolveY(el.y, H);
 
-  // Resolve element size for anchor calculation (use props if rect/image, 0 for text)
+  // Resolve element size for anchor calculation (use props if rect/image/video, 0 for text)
   let elW = 0, elH = 0;
-  if (el.tag === 'ws-rect' || el.tag === 'ws-image') {
+  if (el.tag === 'ws-rect' || el.tag === 'ws-image' || el.tag === 'ws-video') {
     elW = resolveUnit(el.width,  W);
     elH = resolveUnit(el.height, H);
   }
@@ -207,6 +228,9 @@ function evaluateElement(el, t, layerOpacity, W, H, effectiveZ) {
       break;
     case 'ws-image':
       props = resolveImageProps(el, W, H);
+      break;
+    case 'ws-video':
+      props = resolveVideoProps(el, W, H);
       break;
   }
 
@@ -242,7 +266,8 @@ export function evaluate(scene, t) {
     const effectiveLayerZ = layer.z;
     for (const el of layer.elements) {
       const effectiveZ = effectiveLayerZ * 1000 + el.z;
-      elements.push(evaluateElement(el, clampedT, layer.opacity, W, H, effectiveZ));
+      const computed = evaluateElement(el, clampedT, layer.opacity, W, H, effectiveZ);
+      if (computed) elements.push(computed);
     }
   }
 
