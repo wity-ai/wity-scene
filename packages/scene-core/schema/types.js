@@ -168,6 +168,7 @@ export const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-ima
 /**
  * @typedef {Object} WsLayer
  * @property {string}      id       - Layer identifier
+ * @property {string}      [label]  - Human-readable display name; optional, falls back to id in UIs
  * @property {number}      z        - Layer z-index
  * @property {number}      opacity  - Layer-level opacity (multiplied with element opacity)
  * @property {WsElement[]} elements

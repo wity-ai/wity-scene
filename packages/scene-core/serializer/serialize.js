@@ -179,6 +179,7 @@ function serializeCast(cast, depth) {
 function serializeLayer(layer, depth) {
   const attrs = [
     attrib('id',      layer.id),
+    attrib('label',   layer.label || undefined),
     attrib('z',       layer.z,       0),
     attrib('opacity', layer.opacity, 1),
   ].join('');

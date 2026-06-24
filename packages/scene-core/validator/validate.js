@@ -253,6 +253,9 @@ export function validate(scene) {
     if (typeof layer.id !== 'string' || !layer.id) {
       errors.push(`${lPath}: id must be a non-empty string`);
     }
+    if (layer.label !== undefined && typeof layer.label !== 'string') {
+      warnings.push(`${lPath}: label must be a string if provided`);
+    }
     if (!isOpacity(layer.opacity)) {
       errors.push(`${lPath}: opacity must be in [0, 1]`);
     }

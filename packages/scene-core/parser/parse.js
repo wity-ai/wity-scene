@@ -256,8 +256,10 @@ function parseLayer(el) {
     const parsed = parseElement(child);
     if (parsed) elements.push(parsed);
   }
+  const rawLabel = el.getAttribute('label');
   return {
     id:       attr(el, 'id') || `layer-${elements.length}`,
+    ...(rawLabel ? { label: rawLabel } : {}),
     z:        numAttr(el, 'z', 0),
     opacity:  numAttr(el, 'opacity', 1),
     elements,
