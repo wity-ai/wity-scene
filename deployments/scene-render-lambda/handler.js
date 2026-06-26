@@ -85,15 +85,21 @@ async function invokeLambda(functionName, payload) {
     Payload:        JSON.stringify({ body: JSON.stringify(payload) }),
   }));
 
-  // FunctionError is set when the Lambda itself threw an unhandled exception
+  // Guard: empty payload indicates a Lambda service-level failure (not a function error)
+  if (!res.Payload?.length) {
+    throw new Error(`${functionName} returned an empty payload — possible service timeout or invocation error`);
+  }
+
+  const raw = Buffer.from(res.Payload).toString();
+
+  // FunctionError is set when the Lambda threw an unhandled exception
   if (res.FunctionError) {
-    const raw = Buffer.from(res.Payload).toString();
     let msg;
     try { msg = JSON.parse(raw).errorMessage ?? raw; } catch { msg = raw; }
     throw new Error(`${functionName} execution error: ${msg}`);
   }
 
-  const outer = JSON.parse(Buffer.from(res.Payload).toString());
+  const outer = JSON.parse(raw);
   const body  = typeof outer.body === 'string' ? JSON.parse(outer.body) : (outer.body ?? outer);
 
   if ((outer.statusCode ?? 200) !== 200) {

@@ -1,0 +1,14 @@
+{
+  "name": "scene-render-lambda",
+  "version": "1.0.0",
+  "description": "Gateway Lambda — routes wity-scene render requests to the appropriate downstream Lambdas.",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@aws-sdk/client-lambda": "^3.0.0",
+    "@wity/scene-core": "*"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
