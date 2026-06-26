@@ -4,8 +4,7 @@
  * Returns local paths alongside original metadata.
  */
 
-import fs   from 'fs';
-import fsp  from 'fs/promises';
+import fs    from 'fs';
 import https from 'https';
 import http  from 'http';
 import path  from 'path';
