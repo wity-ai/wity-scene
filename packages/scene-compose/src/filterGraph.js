@@ -170,16 +170,21 @@ export function buildFilterGraph({
   // ── Audio tracks ─────────────────────────────────────────────────────────
   const audioOutputLabels = [];
 
-  audios.forEach((a, i) => {
-    const idx    = audioBaseIdx + i;
-    const begin  = a.begin ?? 0;
-    const vol    = a.volume ?? 1;
-    const delayMs = Math.round(begin * 1000);
+  // TARGET_RATE: all audio branches are resampled to this rate before mixing.
+  // Prevents amix crash / distortion when clips have different native sample rates.
+  const TARGET_RATE = 48000;
 
-    const aLabel = `[a${i}]`;
-    // adelay shifts the track; aresample ensures consistent sample rate;
+  audios.forEach((a, i) => {
+    const idx     = audioBaseIdx + i;
+    const begin   = a.begin ?? 0;
+    const vol     = a.volume ?? 1;
+    const delayMs = Math.round(begin * 1000);
+    const aLabel  = `[a${i}]`;
+    // aresample normalises sample rate; adelay uses all=1 (works for mono + stereo);
     // volume scales amplitude
-    parts.push(`[${idx}:a]adelay=${delayMs}|${delayMs},volume=${vol}${aLabel}`);
+    parts.push(
+      `[${idx}:a]aresample=${TARGET_RATE},adelay=${delayMs}:all=1,volume=${vol}${aLabel}`
+    );
     audioOutputLabels.push(aLabel);
   });
 
@@ -188,24 +193,27 @@ export function buildFilterGraph({
   // referencing [idx:a] for a silent video file would crash FFmpeg.
   videos.forEach((v, i) => {
     if (v.muted || !v.hasAudio) return;
-    const vol    = v.volume ?? 1;
+    const vol     = v.volume ?? 1;
     if (vol === 0) return;
-    const idx    = videoBaseIdx + i;
-    const begin  = v.begin ?? 0;
+    const idx     = videoBaseIdx + i;
+    const begin   = v.begin ?? 0;
     const delayMs = Math.round(begin * 1000);
-    const aLabel = `[va${i}]`;
-    parts.push(`[${idx}:a]adelay=${delayMs}|${delayMs},volume=${vol}${aLabel}`);
+    const aLabel  = `[va${i}]`;
+    parts.push(
+      `[${idx}:a]aresample=${TARGET_RATE},adelay=${delayMs}:all=1,volume=${vol}${aLabel}`
+    );
     audioOutputLabels.push(aLabel);
   });
 
   let audioMap = null;
   if (audioOutputLabels.length > 0) {
     if (audioOutputLabels.length === 1) {
-      // No need for amix when there's a single track
       parts.push(`${audioOutputLabels[0]}anull[aout]`);
     } else {
+      // dropout_transition=0: prevent amix from fading remaining tracks when a
+      // shorter track ends (default is 2s fade which silences music mid-scene).
       parts.push(
-        `${audioOutputLabels.join('')}amix=inputs=${audioOutputLabels.length}:normalize=0[aout]`
+        `${audioOutputLabels.join('')}amix=inputs=${audioOutputLabels.length}:normalize=0:dropout_transition=0[aout]`
       );
     }
     audioMap = '[aout]';
