@@ -34,10 +34,14 @@ A spatial scene-graph format for rendering layered visual overlays — title car
 
 ## Packages
 
-| Package | Purpose |
-|---|---|
-| [`@wity/scene-core`](/packages/scene-core) | Parse, evaluate, serialize, validate — the full headless engine |
-| [`@wity/scene`](/packages/scene) | Convenience re-export |
+| Package | Purpose | Environment |
+|---|---|---|
+| [`@wity/scene-core`](/packages/scene-core) | Parse, evaluate, serialize, validate — the full headless engine | Browser + Node.js |
+| [`@wity/scene-headless`](/packages/scene-headless) | Authoring state — selection, history, undo, snap, timeline | Browser + Node.js |
+| [`@wity/scene-player`](/packages/scene-player) | `HeadlessPlayer` — drives `evaluate()` at playback rate via RAF | Browser + Node.js |
+| [`@wity/scene-to-video`](/packages/scene-to-video) | Graphics compiler — ws-rect/ws-text/ws-image → MP4 via node-canvas + FFmpeg | Node.js / Lambda |
+| [`@wity/scene-compose`](/packages/scene-compose) | Full compositor — ws-video + ws-audio + graphics overlay → final MP4 | Node.js / Lambda |
+| [`@wity/scene`](/packages/scene) | Convenience re-export of scene-core | Browser + Node.js |
 
 ## Quick start
 

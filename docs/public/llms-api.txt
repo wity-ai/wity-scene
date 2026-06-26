@@ -2,7 +2,7 @@
 
 Pure API surface. No prose. Signatures, types, constants, and schema attributes.
 
-Version: scene-core v1.0.0 · scene-headless v1.0.0 · scene-player v1.0.0
+Version: scene-core v1.0.0 · scene-headless v1.0.0 · scene-player v1.0.0 · scene-to-video v1.0.0 · scene-compose v1.0.0
 
 ---
 
@@ -22,9 +22,76 @@ import {
 // Headless player — drives evaluate() at playback rate
 import { HeadlessPlayer } from '@wity/scene-player';
 
+// Server-side: graphics compiler (Node.js / Lambda only)
+// Renders ws-rect/ws-text/ws-image → silent MP4. ws-video/ws-audio ignored.
+import { compile } from '@wity/scene-to-video';
+
+// Server-side: full compositor (Node.js / Lambda only)
+// Blends ws-video + ws-audio + graphics overlay → final MP4 via FFmpeg filter_complex
+import { compose } from '@wity/scene-compose';
+
 // Convenience re-export of scene-core
 import { parse, evaluate, serialize, validate } from '@wity/scene';
 ```
+
+---
+
+## compile(sceneXml, fontManifest, options)  [@wity/scene-to-video]
+
+```js
+compile(
+  sceneXml:     string,
+  fontManifest: Record<string, string>,   // { 'FontName': 'https://url/to/font.ttf' }
+  options:      { fps?: number }          // default fps=30
+): Promise<{ videoPath: string, cleanup: () => Promise<void> }>
+```
+
+- Renders graphic elements only: ws-rect, ws-text, ws-image
+- ws-video and ws-audio elements are silently ignored
+- `videoPath` is a local /tmp path — upload to S3, then call cleanup()
+- Requires FFmpeg in PATH or FFMPEG_PATH env var
+- Node.js / Lambda only (uses node-canvas, not browser-safe)
+
+Lambda (`witySceneToVideo`) input: `{ sceneXml, fontManifest?, fps? }`
+Lambda response: `{ url: string, fileSize: number }`
+
+---
+
+## compose(sceneXml, graphicsMp4Url, options)  [@wity/scene-compose]
+
+```js
+compose(
+  sceneXml:       string,
+  graphicsMp4Url: string | null,
+  options: {
+    outputBucket?:  string,   // S3 bucket (or OUTPUT_BUCKET env)
+    outputPrefix?:  string,   // default "scene-composed/"
+    fps?:           number,   // default 30
+    sceneWidth?:    number,   // default 1280
+    sceneHeight?:   number,   // default 720
+  }
+): Promise<{ url: string, fileSize: number }>
+```
+
+- Composites ws-video clips + ws-audio tracks + optional graphics overlay
+- `graphicsMp4Url`: URL of graphics MP4 from `compile()` / witySceneToVideo; pass null if no graphics
+- Downloads all media in parallel, runs FFmpeg filter_complex, streams output to S3
+- Audio pipeline: aresample=48000, adelay:all=1, volume, amix normalize=0 dropout_transition=0
+- Video clips: scale/fit → setpts offset → overlay=x:y:enable='between(t,begin,end)'
+- Node.js / Lambda only
+- Requires FFmpeg in PATH or FFMPEG_PATH env var
+
+Lambda (`witySceneCompose`) input: `{ sceneXml, graphicsMp4Url?, fps?, sceneWidth?, sceneHeight? }`
+Lambda response: `{ url: string, fileSize: number }`
+
+### Two-step pipeline
+
+```
+sceneXml → witySceneToVideo → graphicsMp4Url
+sceneXml + graphicsMp4Url  → witySceneCompose → final MP4 url
+```
+
+Both Lambdas receive the same sceneXml. Step 2 re-parses to extract ws-video/ws-audio independently.
 
 ---
 

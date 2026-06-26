@@ -107,6 +107,7 @@ export default defineConfig({
           { text: 'Overview',    link: '/guide/overview' },
           { text: 'Schema v1.0', link: '/guide/schema' },
           { text: 'Rendering',   link: '/guide/rendering' },
+          { text: 'Deployment',  link: '/guide/deployment' },
         ],
       },
       {
@@ -115,6 +116,8 @@ export default defineConfig({
           { text: '@wity/scene-core',     link: '/packages/scene-core' },
           { text: '@wity/scene-headless', link: '/packages/scene-headless' },
           { text: '@wity/scene-player',   link: '/packages/scene-player' },
+          { text: '@wity/scene-to-video', link: '/packages/scene-to-video' },
+          { text: '@wity/scene-compose',  link: '/packages/scene-compose' },
         ],
       },
     ],

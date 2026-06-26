@@ -16,11 +16,14 @@ f(scene, t) → ComputedFrame
 
 The same document runs in the browser (authoring UI), on Node.js (video compilation backend), and in any player component — no platform-specific code anywhere.
 
-| Package | Purpose | Standalone? |
+| Package | Purpose | Environment |
 |---|---|---|
-| [`@wity/scene-core`](https://www.wity.ai/stack/scene-graph/packages/scene-core) | Parse · evaluate · serialize · validate | Yes |
-| [`@wity/scene-headless`](https://www.wity.ai/stack/scene-graph/packages/scene-headless) | Authoring state — selection, history, snap, timeline | Requires scene-core |
-| [`@wity/scene`](https://www.wity.ai/stack/scene-graph/packages/scene) | Convenience re-export | Requires scene-core |
+| [`@wity/scene-core`](https://www.wity.ai/stack/scene-graph/packages/scene-core) | Parse · evaluate · serialize · validate | Browser + Node.js |
+| [`@wity/scene-headless`](https://www.wity.ai/stack/scene-graph/packages/scene-headless) | Authoring state — selection, history, snap, timeline | Browser + Node.js |
+| [`@wity/scene-player`](https://www.wity.ai/stack/scene-graph/packages/scene-player) | `HeadlessPlayer` — drives evaluate() at playback rate via RAF | Browser + Node.js |
+| [`@wity/scene-to-video`](https://www.wity.ai/stack/scene-graph/packages/scene-to-video) | Graphics compiler — ws-rect/ws-text/ws-image → MP4 (node-canvas + FFmpeg) | Node.js / Lambda |
+| [`@wity/scene-compose`](https://www.wity.ai/stack/scene-graph/packages/scene-compose) | Full compositor — ws-video + ws-audio + graphics overlay → final MP4 (FFmpeg filter_complex) | Node.js / Lambda |
+| [`@wity/scene`](https://www.wity.ai/stack/scene-graph/packages/scene) | Convenience re-export of scene-core | Browser + Node.js |
 
 ## Quick start
 
