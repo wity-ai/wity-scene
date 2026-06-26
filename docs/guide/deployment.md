@@ -1,166 +1,145 @@
 # Deployment — Server-Side Video Pipeline
 
-wity-scene scenes that contain `ws-video` or `ws-audio` elements require a two-step server-side pipeline to produce a final MP4. Scenes with only graphic elements (`ws-rect`, `ws-text`, `ws-image`) only need step 1.
+wity-scene provides a single public Lambda entry point (`witySceneRender`) that accepts a scene XML document and returns a rendered output URL. Internally it inspects the scene content and routes to the appropriate specialized Lambdas — callers never need to know about the internal pipeline.
 
 ---
 
-## Two-step pipeline overview
+## Public entry point — `witySceneRender`
 
 ```
-sceneXml
-  │
-  ├──▶  Step 1: witySceneToVideo   (graphics compiler)
-  │         ws-rect + ws-text + ws-image
-  │         → PNG frame sequence → silent MP4
-  │         → returns: graphicsMp4Url
-  │
-  └──▶  Step 2: witySceneCompose   (full compositor)
-            ws-video clips + ws-audio tracks + graphicsMp4Url
-            → FFmpeg filter_complex
-            → final composited MP4
-            → returns: { url, fileSize }
+caller → witySceneRender (gateway)
+              │ parse + detect content
+              ├─ hasGraphics? → witySceneToVideo → graphicsMp4Url
+              └─ hasMedia?    → witySceneCompose(graphicsMp4Url) → final URL
 ```
 
-The two steps are separate Lambda functions. The caller orchestrates them and passes the output of step 1 into step 2.
-
----
-
-## Step 1 — `witySceneToVideo`
-
-Renders the **graphic layers** only (ws-rect, ws-text, ws-image). ws-video and ws-audio elements are ignored.
-
-**Package:** [`@wity/scene-to-video`](/packages/scene-to-video)
-
-**Lambda:** `witySceneToVideo`
-
-### Invocation
+### Input
 
 ```json
 {
-  "sceneXml":     "<wity-scene>...</wity-scene>",
-  "fontManifest": { "Inter": "https://cdn.example.com/Inter.ttf" },
-  "fps":          30
+  "sceneXml":      "<wity-scene>...</wity-scene>",
+  "outputFormat":  "mp4",
+  "options": {
+    "fps":          30,
+    "sceneWidth":   1920,
+    "sceneHeight":  1080,
+    "fontManifest": { "Inter": "https://cdn.example.com/Inter.ttf" }
+  }
 }
 ```
 
-`fontManifest` is optional — pass `{}` if no custom fonts.
+`outputFormat` defaults to `"mp4"`. `options` fields all have defaults (see below). `fontManifest` is only relevant if the scene contains `ws-text` elements with custom fonts.
 
 ### Response
 
 ```json
-{ "url": "https://wity-user-generated-content.s3.ap-south-1.amazonaws.com/scene-compiled/...", "fileSize": 123456 }
+{ "url": "https://...", "fileSize": 9876543, "pipeline": ["witySceneToVideo", "witySceneCompose"] }
 ```
 
-If the scene has no graphic elements (only ws-video/ws-audio), you may skip step 1 and pass `graphicsMp4Url: null` to step 2.
+`pipeline` tells the caller which downstream Lambdas were invoked. Useful for observability and cost attribution.
 
 ### Lambda config
+
+| Setting | Value |
+|---------|-------|
+| Function name | `witySceneRender` |
+| Memory | 512 MB |
+| Timeout | 660 s (11 min — accommodates two sequential 300s downstream calls) |
+| Ephemeral storage | 512 MB |
+| Runtime | Node.js 20 |
+| No FFmpeg layer needed | This Lambda only parses and routes — no media processing |
+
+### Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SCENE_TO_VIDEO_FUNCTION` | `witySceneToVideo` | Name of the graphics compiler Lambda |
+| `SCENE_COMPOSE_FUNCTION` | `witySceneCompose` | Name of the compositor Lambda |
+
+> **IAM note:** The execution role must have `lambda:InvokeFunction` permission on both downstream Lambdas.
+
+---
+
+## Routing logic
+
+The gateway parses the scene and checks element tags across all layers:
+
+| Scene content | Route |
+|---|---|
+| Only `ws-rect` / `ws-text` / `ws-image` | `witySceneToVideo` only → done |
+| `ws-video` / `ws-audio` with graphic elements | `witySceneToVideo` → `witySceneCompose` |
+| `ws-video` / `ws-audio` with no graphic elements | `witySceneCompose` only (`graphicsMp4Url: null`) |
+
+This routing is entirely internal. The caller provides `sceneXml` and receives a URL.
+
+---
+
+## Adding a new output format
+
+The gateway uses a `PIPELINE_REGISTRY` keyed by `outputFormat`. To add a future format (e.g. PDF):
+
+1. Deploy a specialized Lambda (e.g. `witySceneToPdf`).
+2. Add `"pdf"` to `PIPELINE_REGISTRY` in `handler.js` — a single function `(sceneXml, content, options) → { url, fileSize, pipeline }`.
+3. Add `SCENE_TO_PDF_FUNCTION` env var to the gateway config.
+
+No changes to any other Lambda. Existing `"mp4"` routing is untouched.
+
+```js
+// Example future entry in PIPELINE_REGISTRY:
+pdf: async (sceneXml, { hasGraphics }, options) => {
+  const r = await invokeLambda(process.env.SCENE_TO_PDF_FUNCTION || 'witySceneToPdf', {
+    sceneXml,
+    fontManifest: options.fontManifest ?? {},
+  });
+  return { url: r.url, fileSize: r.fileSize, pipeline: ['witySceneToPdf'] };
+},
+```
+
+---
+
+## Downstream Lambdas (internal)
+
+These are internal infrastructure. Callers should not invoke them directly — use `witySceneRender`.
+
+### `witySceneToVideo` — graphics compiler
+
+Renders `ws-rect`, `ws-text`, `ws-image` → PNG frame sequence → silent MP4. `ws-video` and `ws-audio` are ignored.
+
+**Package:** [`@wity/scene-to-video`](/packages/scene-to-video)
 
 | Setting | Value |
 |---------|-------|
 | Memory | 3008 MB |
 | Timeout | 300 s |
 | Ephemeral storage | 4096 MB |
-| Runtime | Node.js 20 |
 | FFmpeg layer | `arn:aws:lambda:ap-south-1:175033217214:layer:ffmpeg:1` |
 
-### Environment variables
+Input: `{ sceneXml, fontManifest?, fps? }` → `{ url, fileSize }`
 
-| Variable | Description |
-|----------|-------------|
-| `OUTPUT_BUCKET` | S3 bucket for compiled graphics MP4 |
-| `OUTPUT_PREFIX` | S3 key prefix (default: `scene-compiled/`) |
-| `FFMPEG_PATH` | Override FFmpeg binary path (optional) |
+### `witySceneCompose` — full compositor
 
----
-
-## Step 2 — `witySceneCompose`
-
-Composites **everything** — ws-video clips, ws-audio tracks, and the graphics overlay — into the final MP4 using FFmpeg `filter_complex`.
+Blends `ws-video` clips + `ws-audio` tracks + optional graphics overlay via FFmpeg `filter_complex`.
 
 **Package:** [`@wity/scene-compose`](/packages/scene-compose)
-
-**Lambda:** `witySceneCompose`
-
-### Invocation
-
-```json
-{
-  "sceneXml":       "<wity-scene>...</wity-scene>",
-  "graphicsMp4Url": "https://wity-user-generated-content.s3.ap-south-1.amazonaws.com/scene-compiled/...",
-  "fps":            30,
-  "sceneWidth":     1920,
-  "sceneHeight":    1080
-}
-```
-
-`graphicsMp4Url` is optional. `fps`/`sceneWidth`/`sceneHeight` default to `30` / `1280` / `720`.
-
-### Response
-
-```json
-{ "url": "https://wity-user-generated-content.s3.ap-south-1.amazonaws.com/scene-composed/...", "fileSize": 9876543 }
-```
-
-### Lambda config
 
 | Setting | Value |
 |---------|-------|
 | Memory | 2048 MB |
 | Timeout | 300 s |
 | Ephemeral storage | 4096 MB |
-| Runtime | Node.js 20 |
 | FFmpeg layer | `arn:aws:lambda:ap-south-1:175033217214:layer:ffmpeg:1` |
 
-### Environment variables
-
-| Variable | Description |
-|----------|-------------|
-| `OUTPUT_BUCKET` | S3 bucket for composed MP4 output |
-| `OUTPUT_PREFIX` | S3 key prefix (default: `scene-composed/`) |
-| `FFMPEG_PATH` | Override FFmpeg binary path (optional) |
+Input: `{ sceneXml, graphicsMp4Url?, fps?, sceneWidth?, sceneHeight? }` → `{ url, fileSize }`
 
 ---
 
-## Caller orchestration (pseudo-code)
+## S3 bucket setup
 
-```js
-// Step 1 — graphics
-const { url: graphicsMp4Url } = await invokeLambda('witySceneToVideo', {
-  sceneXml,
-  fontManifest: {},
-  fps: 30,
-});
+Both downstream Lambdas write to the same bucket (`wity-user-generated-content`) under different prefixes:
 
-// Step 2 — full composite
-const { url: finalMp4Url } = await invokeLambda('witySceneCompose', {
-  sceneXml,
-  graphicsMp4Url,   // null if scene has no graphic elements
-  fps:         30,
-  sceneWidth:  1920,
-  sceneHeight: 1080,
-});
+| Lambda | Prefix | Example key |
+|--------|--------|-------------|
+| `witySceneToVideo` | `scene-compiled/` | `scene-compiled/1234-abc.mp4` |
+| `witySceneCompose` | `scene-composed/` | `scene-composed/5678-def.mp4` |
 
-// finalMp4Url is the delivery URL
-```
-
-Both Lambda invocations receive the **same `sceneXml`**. Step 2 re-parses it to extract ws-video and ws-audio — it does not depend on the rendered frame output of step 1, only the URL.
-
----
-
-## Graphics-only scenes
-
-If a scene contains no `ws-video` or `ws-audio` — for example, a lower-third overlay or a slideshow of images with no audio — you can stop at step 1 and use the graphics MP4 directly, or skip to step 2 with `graphicsMp4Url: null` to get a plain black-canvas video with audio.
-
-| Scene content | Step 1 needed? | Step 2 needed? |
-|---|---|---|
-| ws-rect / ws-text / ws-image only | Yes | No |
-| ws-video / ws-audio only | No | Yes (pass `graphicsMp4Url: null`) |
-| Mixed (graphics + video/audio) | Yes | Yes |
-
----
-
-## Why two separate Lambdas
-
-- **Different bottlenecks.** Step 1 is CPU-bound (canvas frame rendering). Step 2 is I/O-bound (downloading media) then CPU-bound (FFmpeg mux). Separate functions allow independent tuning.
-- **Memory ceiling.** `witySceneToVideo` is already at the Lambda memory ceiling (3008 MB). Adding multi-file download + filter_complex compositing to the same function would exceed both memory and timeout limits for long scenes.
-- **Independent scaling.** Short graphic-only renders don't incur the cost of a compositing Lambda. Long multi-clip scenes can run step 2 with more timeout headroom.
+The gateway Lambda does not write to S3 — it only orchestrates.

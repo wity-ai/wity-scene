@@ -1,0 +1,15 @@
+{
+  "functionName": "witySceneRender",
+  "role": "arn:aws:iam::550622170137:role/service-role/mediaMuxer-role-smm1wdy1",
+  "region": "ap-south-1",
+  "runtime": "nodejs20.x",
+  "handler": "handler.handler",
+  "architecture": "x86_64",
+  "memorySize": 512,
+  "timeout": 660,
+  "ephemeralStorage": 512,
+  "environment": {
+    "SCENE_TO_VIDEO_FUNCTION": "witySceneToVideo",
+    "SCENE_COMPOSE_FUNCTION": "witySceneCompose"
+  }
+}

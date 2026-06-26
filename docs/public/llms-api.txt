@@ -36,6 +36,40 @@ import { parse, evaluate, serialize, validate } from '@wity/scene';
 
 ---
 
+## witySceneRender — gateway Lambda (PUBLIC ENTRY POINT)
+
+Single entry point for all scene rendering. Do NOT call witySceneToVideo or witySceneCompose directly — call witySceneRender and let it route internally.
+
+```json
+// Input
+{
+  "sceneXml":      "<wity-scene>...</wity-scene>",
+  "outputFormat":  "mp4",
+  "options": {
+    "fps":          30,
+    "sceneWidth":   1920,
+    "sceneHeight":  1080,
+    "fontManifest": {}
+  }
+}
+
+// Response
+{ "url": "https://...", "fileSize": 9876543, "pipeline": ["witySceneToVideo", "witySceneCompose"] }
+```
+
+Routing (internal, automatic):
+- graphics-only (ws-rect/ws-text/ws-image)      → witySceneToVideo
+- mixed (graphics + ws-video/ws-audio)           → witySceneToVideo → witySceneCompose
+- media-only (ws-video/ws-audio, no graphics)    → witySceneCompose (graphicsMp4Url: null)
+
+Lambda config: 512 MB / 660 s / Node.js 20 / no FFmpeg layer
+Env vars: SCENE_TO_VIDEO_FUNCTION (default: witySceneToVideo), SCENE_COMPOSE_FUNCTION (default: witySceneCompose)
+IAM: execution role needs lambda:InvokeFunction on both downstream Lambdas.
+
+Extensible: add outputFormat "pdf" → add witySceneToPdf Lambda + one entry in PIPELINE_REGISTRY in handler.js.
+
+---
+
 ## compile(sceneXml, fontManifest, options)  [@wity/scene-to-video]
 
 ```js

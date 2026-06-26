@@ -548,6 +548,31 @@ sceneXml
 
 Both steps receive the **same sceneXml**. Step 2 re-parses independently to extract ws-video/ws-audio. `graphicsMp4Url` is optional — pass null if the scene has no graphic elements.
 
+### witySceneRender — gateway Lambda (PUBLIC ENTRY POINT)
+
+Single public entry point. Callers send one request and receive one URL. Internal routing is automatic.
+
+```
+caller → witySceneRender
+              │ parse + detect content
+              ├─ hasGraphics? → witySceneToVideo → graphicsMp4Url
+              └─ hasMedia?    → witySceneCompose(graphicsMp4Url | null) → final URL
+```
+
+Input: `{ sceneXml, outputFormat?: "mp4", options?: { fps?, sceneWidth?, sceneHeight?, fontManifest? } }`
+Response: `{ url, fileSize, pipeline: string[] }`
+Lambda: 512 MB / 660 s / no FFmpeg layer
+Env: SCENE_TO_VIDEO_FUNCTION, SCENE_COMPOSE_FUNCTION
+
+Routing table:
+- `ws-rect/ws-text/ws-image` only → witySceneToVideo → done
+- graphics + `ws-video/ws-audio` → witySceneToVideo → witySceneCompose
+- `ws-video/ws-audio` only (no graphics) → witySceneCompose (graphicsMp4Url: null)
+
+Extensible via PIPELINE_REGISTRY in handler.js — add outputFormat "pdf" without touching any existing Lambda.
+
+---
+
 ### @wity/scene-to-video
 
 Graphics-only compiler. Node.js / Lambda only.

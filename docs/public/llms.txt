@@ -29,7 +29,11 @@ Server-side video pipeline (Node.js / Lambda only):
 
 Core model: a scene document is a pure function of time. Call `evaluate(scene, t)` at any frame — no mutation, no playback state.
 
-Server-side pipeline: two Lambda invocations with the same sceneXml. Step 1 (witySceneToVideo) compiles graphics. Step 2 (witySceneCompose) composites everything. graphicsMp4Url is optional — pass null when the scene has no graphic elements.
+Public entry point: witySceneRender (gateway Lambda). Callers send { sceneXml, outputFormat?, options? } to witySceneRender — it parses the scene, detects element types, and routes internally. Callers never invoke witySceneToVideo or witySceneCompose directly.
+
+Routing: graphics-only scene → witySceneToVideo only. Mixed scene → witySceneToVideo then witySceneCompose. Media-only scene → witySceneCompose only (graphicsMp4Url: null).
+
+Extensible: adding outputFormat "pdf" means adding a witySceneToPdf Lambda + one entry in witySceneRender's PIPELINE_REGISTRY. No changes to existing Lambdas.
 
 ## Document structure
 
