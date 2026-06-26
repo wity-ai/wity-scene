@@ -34,12 +34,15 @@ function parseS3Url(url) {
   const s3Protocol = url.match(/^s3:\/\/([^/]+)\/(.+)$/);
   if (s3Protocol) return { bucket: s3Protocol[1], key: s3Protocol[2] };
 
-  // https://bucket.s3.region.amazonaws.com/key  (virtual-hosted)
-  const virtualHosted = url.match(/^https?:\/\/([^.]+)\.s3[^.]*\.amazonaws\.com\/(.+)$/);
+  // https://bucket.s3.amazonaws.com/key           (virtual-hosted, global)
+  // https://bucket.s3.ap-south-1.amazonaws.com/key (virtual-hosted, regional)
+  // (?:\.[^.]+)* matches zero or more dot-separated region segments between .s3 and .amazonaws
+  const virtualHosted = url.match(/^https?:\/\/([^.]+)\.s3(?:\.[^.]+)*\.amazonaws\.com\/(.+)$/);
   if (virtualHosted) return { bucket: virtualHosted[1], key: virtualHosted[2].split('?')[0] };
 
-  // https://s3.region.amazonaws.com/bucket/key  (path-style)
-  const pathStyle = url.match(/^https?:\/\/s3[^.]*\.amazonaws\.com\/([^/]+)\/(.+)$/);
+  // https://s3.amazonaws.com/bucket/key           (path-style, global)
+  // https://s3.ap-south-1.amazonaws.com/bucket/key (path-style, regional)
+  const pathStyle = url.match(/^https?:\/\/s3(?:\.[^.]+)*\.amazonaws\.com\/([^/]+)\/(.+)$/);
   if (pathStyle) return { bucket: pathStyle[1], key: pathStyle[2].split('?')[0] };
 
   return null;
