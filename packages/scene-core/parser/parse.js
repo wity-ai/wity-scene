@@ -130,6 +130,7 @@ function parseElementBase(el) {
     animateIn:  enumAttr(el, 'animate-in',  ANIMATE_IN_VALUES,  'none'),
     animateOut: enumAttr(el, 'animate-out', ANIMATE_OUT_VALUES, 'none'),
     animateDur: numAttr(el, 'animate-dur', 0.4),
+    ...(el.hasAttribute('name') ? { name: attr(el, 'name') } : {}),
   };
 }
 
@@ -204,6 +205,7 @@ function parseAudio(el) {
     loop:    boolAttr(el, 'loop', false),
     trimIn:  numAttr(el, 'trim-in', 0),
     trimOut: el.hasAttribute('trim-out') ? numAttr(el, 'trim-out', null) : null,
+    ...(el.hasAttribute('name') ? { name: attr(el, 'name') } : {}),
   };
 }
 

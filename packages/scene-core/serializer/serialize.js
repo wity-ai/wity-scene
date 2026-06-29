@@ -61,6 +61,7 @@ function baseAttribs(el) {
     attrib('animate-in',  el.animateIn,  'none'),
     attrib('animate-out', el.animateOut, 'none'),
     attrib('animate-dur', el.animateDur, 0.4),
+    attrib('name',        el.name       ?? undefined),
   ].join('');
 }
 
@@ -133,6 +134,7 @@ function serializeAudio(el, depth) {
     attrib('loop',     el.loop,   false),
     attrib('trim-in',  el.trimIn, 0),
     attrib('trim-out', el.trimOut ?? undefined),
+    attrib('name',     el.name   ?? undefined),
   ].join('');
   return `${ind(depth)}<ws-audio${attrs} />`;
 }

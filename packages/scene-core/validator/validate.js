@@ -81,6 +81,9 @@ function validateBase(el, path, errors, warnings) {
   if (!isNonNegative(el.animateDur)) {
     errors.push(`${path}: animate-dur must be a non-negative number`);
   }
+  if (el.name !== undefined && typeof el.name !== 'string') {
+    errors.push(`${path}: name must be a string`);
+  }
 }
 
 // ─── Element validators ───────────────────────────────────────────────────────
@@ -164,6 +167,9 @@ function validateAudio(el, path, errors, warnings) {
   if (!isNonNegative(el.trimIn)) errors.push(`${path}: trim-in must be non-negative`);
   if (el.trimOut !== null && !isNonNegative(el.trimOut)) {
     errors.push(`${path}: trim-out must be non-negative or null`);
+  }
+  if (el.name !== undefined && typeof el.name !== 'string') {
+    errors.push(`${path}: name must be a string`);
   }
 }
 

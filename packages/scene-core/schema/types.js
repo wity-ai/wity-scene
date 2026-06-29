@@ -92,6 +92,7 @@ export const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-ima
  * @property {AnimateValue} animateIn  - Entrance animation
  * @property {AnimateValue} animateOut - Exit animation
  * @property {number}      animateDur  - Duration of entrance/exit animation in seconds (default 0.4)
+ * @property {string}      [name]      - Optional human-readable display name
  */
 
 /**
@@ -159,6 +160,7 @@ export const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-ima
  * @property {boolean}       loop    - Whether to loop (default false)
  * @property {number}        trimIn  - Trim start offset in seconds (default 0)
  * @property {number | null} trimOut - Trim end offset in seconds from start; null = no trim
+ * @property {string}        [name] - Optional human-readable display name
  */
 
 /**

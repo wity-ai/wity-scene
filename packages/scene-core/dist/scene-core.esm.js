@@ -92,6 +92,7 @@ const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-image', 'w
  * @property {AnimateValue} animateIn  - Entrance animation
  * @property {AnimateValue} animateOut - Exit animation
  * @property {number}      animateDur  - Duration of entrance/exit animation in seconds (default 0.4)
+ * @property {string}      [name]      - Optional human-readable display name
  */
 
 /**
@@ -159,6 +160,7 @@ const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-image', 'w
  * @property {boolean}       loop    - Whether to loop (default false)
  * @property {number}        trimIn  - Trim start offset in seconds (default 0)
  * @property {number | null} trimOut - Trim end offset in seconds from start; null = no trim
+ * @property {string}        [name] - Optional human-readable display name
  */
 
 /**
@@ -345,6 +347,7 @@ function parseElementBase(el) {
     animateIn:  enumAttr(el, 'animate-in',  ANIMATE_IN_VALUES,  'none'),
     animateOut: enumAttr(el, 'animate-out', ANIMATE_OUT_VALUES, 'none'),
     animateDur: numAttr(el, 'animate-dur', 0.4),
+    ...(el.hasAttribute('name') ? { name: attr(el, 'name') } : {}),
   };
 }
 
@@ -419,6 +422,7 @@ function parseAudio(el) {
     loop:    boolAttr(el, 'loop', false),
     trimIn:  numAttr(el, 'trim-in', 0),
     trimOut: el.hasAttribute('trim-out') ? numAttr(el, 'trim-out', null) : null,
+    ...(el.hasAttribute('name') ? { name: attr(el, 'name') } : {}),
   };
 }
 
@@ -589,6 +593,7 @@ function baseAttribs(el) {
     attrib('animate-in',  el.animateIn,  'none'),
     attrib('animate-out', el.animateOut, 'none'),
     attrib('animate-dur', el.animateDur, 0.4),
+    attrib('name',        el.name       ?? undefined),
   ].join('');
 }
 
@@ -661,6 +666,7 @@ function serializeAudio(el, depth) {
     attrib('loop',     el.loop,   false),
     attrib('trim-in',  el.trimIn, 0),
     attrib('trim-out', el.trimOut ?? undefined),
+    attrib('name',     el.name   ?? undefined),
   ].join('');
   return `${ind(depth)}<ws-audio${attrs} />`;
 }
@@ -1198,6 +1204,9 @@ function validateBase(el, path, errors, warnings) {
   if (!isNonNegative(el.animateDur)) {
     errors.push(`${path}: animate-dur must be a non-negative number`);
   }
+  if (el.name !== undefined && typeof el.name !== 'string') {
+    errors.push(`${path}: name must be a string`);
+  }
 }
 
 // ─── Element validators ───────────────────────────────────────────────────────
@@ -1281,6 +1290,9 @@ function validateAudio(el, path, errors, warnings) {
   if (!isNonNegative(el.trimIn)) errors.push(`${path}: trim-in must be non-negative`);
   if (el.trimOut !== null && !isNonNegative(el.trimOut)) {
     errors.push(`${path}: trim-out must be non-negative or null`);
+  }
+  if (el.name !== undefined && typeof el.name !== 'string') {
+    errors.push(`${path}: name must be a string`);
   }
 }
 
