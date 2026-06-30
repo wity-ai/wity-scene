@@ -192,7 +192,9 @@ A video clip element — extends all common element attributes. Positioned and t
   src="https://cdn.example.com/clip.mp4"
   width="100%" height="100%" fit="cover"
   begin="0" dur="8"
-  volume="0.8" trim-in="2.5" />
+  volume="0.8" trim-in="2.5">
+  <ws-cue begin="1.0" end="3.2" speaker="char1">Welcome back everyone</ws-cue>
+</ws-video>
 ```
 
 | XML attribute | Object field | Default | Description |
@@ -206,6 +208,8 @@ A video clip element — extends all common element attributes. Positioned and t
 | trim-out      | trimOut     | (none) | End offset within source file; omit = play to end |
 | muted         | muted       | false | Mute audio track |
 
+Both `<ws-video>` and `<ws-audio>` may contain optional `<ws-cue>` children (see below).
+
 ### `<ws-audio>`
 
 A temporal audio element — lives inside a ws-layer but has no visual output and no spatial attributes.
@@ -214,7 +218,9 @@ A temporal audio element — lives inside a ws-layer but has no visual output an
 <ws-audio
   src="https://cdn.example.com/music.mp3"
   begin="0" dur="30"
-  volume="0.4" loop="false" />
+  volume="0.4" loop="false">
+  <ws-cue begin="0" end="5.2">Intro melody</ws-cue>
+</ws-audio>
 ```
 
 | XML attribute | Object field | Default  | Description |
@@ -228,6 +234,27 @@ A temporal audio element — lives inside a ws-layer but has no visual output an
 | trim-in       | trimIn      | 0        | Start offset within source file (seconds) |
 | trim-out      | trimOut     | (none)   | End offset within source file |
 | name          | name        | (none)   | Optional human-readable display name |
+
+### `<ws-cue>` (inside `<ws-video>` or `<ws-audio>`)
+
+Optional timed speech/subtitle cue. Non-rendered metadata — consumed by analysis services, AI agents, and accessibility tools. Timestamps are relative to the **source media file** (aligned with trim-in/trim-out), not the scene timeline.
+
+```xml
+<ws-video src="interview.mp4" begin="0" dur="20" volume="1">
+  <ws-cue begin="1.2" end="3.5" speaker="char1">Welcome to the show</ws-cue>
+  <ws-cue begin="4.0" end="6.8" speaker="char2">Thanks for having me</ws-cue>
+</ws-video>
+```
+
+| XML attribute | Object field | Required | Description |
+|---------------|-------------|----------|-------------|
+| begin         | begin       | yes      | Start time within source media (seconds) |
+| end           | end         | yes      | End time within source media (seconds) |
+| speaker       | speaker     | no       | ws-character id (links to scene.cast) |
+
+Text content is the cue's text node.
+
+In the parsed object, cues are accessed as `element.cues: WsCue[]` (optional — absent when no cues are present).
 
 ### `<ws-cast>` and `<ws-character>`
 
@@ -388,8 +415,16 @@ Visual elements share WsElementBase: `{ id, x, y, anchor, begin, dur, z, opacity
 WsText:  WsElementBase & { tag: 'ws-text',  content, fontSize, fontFamily, fontWeight, color, textAlign, lineHeight, maxWidth, letterSpacing }
 WsRect:  WsElementBase & { tag: 'ws-rect',  width, height, fill, stroke, strokeWidth, rx }
 WsImage: WsElementBase & { tag: 'ws-image', src, width, height, fit }
-WsVideo: WsElementBase & { tag: 'ws-video', src, width, height, fit, volume, trimIn, trimOut, muted }
-WsAudio: { tag: 'ws-audio', id, begin, dur, src, volume, loop, trimIn, trimOut, name? }
+WsVideo: WsElementBase & { tag: 'ws-video', src, width, height, fit, volume, trimIn, trimOut, muted, cues? }
+WsAudio: { tag: 'ws-audio', id, begin, dur, src, volume, loop, trimIn, trimOut, name?, cues? }
+```
+
+### WsCue (inside WsVideo or WsAudio)
+
+Non-rendered metadata — timed speech/subtitle cues. Timestamps relative to source media file.
+
+```js
+{ begin: number, end: number, text: string, speaker?: string }
 ```
 
 ### WsCharacter

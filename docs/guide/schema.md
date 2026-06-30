@@ -142,7 +142,9 @@ A video clip element — positioned and temporally placed within a layer. Extend
   src="https://cdn.example.com/clip.mp4"
   width="100%" height="100%" fit="cover"
   begin="0" dur="8"
-  volume="0.8" trim-in="2.5" />
+  volume="0.8" trim-in="2.5">
+  <ws-cue begin="1.0" end="3.2" speaker="char1">Welcome back everyone</ws-cue>
+</ws-video>
 ```
 
 | Attribute  | Type    | Default   | Description |
@@ -156,6 +158,8 @@ A video clip element — positioned and temporally placed within a layer. Extend
 | `trim-out` | number  | none      | End offset within the source file (seconds); omit = play to end |
 | `muted`    | boolean | `false`   | Mute audio track |
 
+Both `<ws-video>` and `<ws-audio>` may contain optional `<ws-cue>` children (see below).
+
 ---
 
 ## `<ws-audio>`
@@ -166,7 +170,9 @@ A temporal audio track element — lives inside a `ws-layer` but has no visual o
 <ws-audio
   src="https://cdn.example.com/music.mp3"
   begin="0" dur="30"
-  volume="0.4" loop="false" />
+  volume="0.4" loop="false">
+  <ws-cue begin="0" end="5.2">Intro melody</ws-cue>
+</ws-audio>
 ```
 
 | Attribute  | Type    | Default  | Description |
@@ -180,6 +186,29 @@ A temporal audio track element — lives inside a `ws-layer` but has no visual o
 | `trim-in`  | number  | `0`      | Start offset within the source file (seconds) |
 | `trim-out` | number  | none     | End offset within the source file (seconds); omit = play to end |
 | `name`     | string  | none     | Optional human-readable display name |
+
+---
+
+## `<ws-cue>`
+
+Optional timed speech/subtitle cue, nested inside `<ws-video>` or `<ws-audio>`. Non-rendered metadata — consumed by analysis services, AI agents, and accessibility tools. Timestamps are relative to the **source media file** (aligned with `trim-in`/`trim-out`), not the scene timeline.
+
+```xml
+<ws-video src="interview.mp4" begin="0" dur="20" volume="1">
+  <ws-cue begin="1.2" end="3.5" speaker="char1">Welcome to the show</ws-cue>
+  <ws-cue begin="4.0" end="6.8" speaker="char2">Thanks for having me</ws-cue>
+</ws-video>
+```
+
+| Attribute | Type   | Required | Description |
+|-----------|--------|----------|-------------|
+| `begin`   | number | yes      | Start time within source media (seconds) |
+| `end`     | number | yes      | End time within source media (seconds) |
+| `speaker` | string | no       | `ws-character` id (links to `scene.cast`) |
+
+Text content is the cue's text node.
+
+In the parsed object, cues are accessed as `element.cues: WsCue[]` (optional — absent when no cues are present).
 
 ---
 

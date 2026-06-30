@@ -392,6 +392,7 @@ WsElementBase & {
   trimIn:  number,         // seconds into source
   trimOut: number | null,  // seconds into source; null = no trim
   muted:   boolean,
+  cues?:   WsCue[],        // optional timed speech/subtitle cues
 }
 ```
 
@@ -409,6 +410,20 @@ WsElementBase & {
   trimIn:  number,
   trimOut: number | null,
   name?:   string,              // optional human-readable display name
+  cues?:   WsCue[],             // optional timed speech/subtitle cues
+}
+```
+
+### WsCue (inside ws-video or ws-audio)
+
+Non-rendered metadata — consumed by analysis services, AI agents, accessibility tools. Timestamps relative to source media file.
+
+```js
+{
+  begin:    number,        // start time within source media (seconds)
+  end:      number,        // end time within source media (seconds)
+  text:     string,        // speech/subtitle text content
+  speaker?: string,        // optional ws-character id (links to scene.cast)
 }
 ```
 
@@ -562,6 +577,8 @@ WsElementBase & {
 | trim-out  | (none) |
 | muted     | false |
 
+Both `<ws-video>` and `<ws-audio>` may contain optional `<ws-cue>` children (see below).
+
 ### `<ws-audio>` attributes
 
 | Attribute | Default  |
@@ -575,6 +592,18 @@ WsElementBase & {
 | trim-in   | 0 |
 | trim-out  | (none) |
 | name      | (none) |
+
+### `<ws-cue>` attributes (inside `<ws-video>` or `<ws-audio>`)
+
+Non-rendered metadata — timed speech/subtitle cues. Timestamps relative to source media file.
+
+| Attribute | Type   | Required | Description |
+|-----------|--------|----------|-------------|
+| begin     | number | yes      | Start time within source media (seconds) |
+| end       | number | yes      | End time within source media (seconds) |
+| speaker   | string | no       | ws-character id (links to scene.cast) |
+
+Text content is the cue's text node.
 
 ### `<ws-character>` attributes (inside `<ws-cast>`)
 

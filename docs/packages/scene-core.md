@@ -164,6 +164,7 @@ WsElementBase & {
   trimIn:  number,         // seconds into source file
   trimOut: number | null,  // seconds into source file; null = no trim
   muted:   boolean,
+  cues?:   WsCue[],        // optional timed speech/subtitle cues
 }
 ```
 
@@ -181,6 +182,20 @@ WsElementBase & {
   trimIn:  number,
   trimOut: number | null,
   name?:   string,              // optional human-readable display name
+  cues?:   WsCue[],             // optional timed speech/subtitle cues
+}
+```
+
+### `WsCue`
+
+Timed speech/subtitle metadata nested inside `WsVideo` or `WsAudio`. Non-rendered — consumed by analysis services, AI agents, and accessibility tools. Timestamps are relative to the source media file.
+
+```js
+{
+  begin:    number,        // start time within source media (seconds)
+  end:      number,        // end time within source media (seconds)
+  text:     string,        // speech/subtitle text content
+  speaker?: string,        // optional ws-character id (links to scene.cast)
 }
 ```
 

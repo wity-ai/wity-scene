@@ -42,6 +42,7 @@ WityScene
 ├── WsCharacter[]   (ws-cast — semantic metadata entities, non-rendered)
 └── WsLayer[]       (z-ordered planes)
     └── WsElement[] (ws-text | ws-rect | ws-image | ws-video | ws-audio)
+        └── WsCue[] (ws-cue — optional timed speech/subtitle cues inside ws-video or ws-audio, non-rendered)
 ```
 
 ## Quick start — evaluate only
