@@ -144,6 +144,7 @@ export const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-ima
  *   trimIn:  number,
  *   trimOut: number | null,
  *   muted:   boolean,
+ *   cues?:   WsCue[],
  * }} WsVideo
  */
 
@@ -161,6 +162,19 @@ export const ELEMENT_TAGS = /** @type {const} */ (['ws-text', 'ws-rect', 'ws-ima
  * @property {number}        trimIn  - Trim start offset in seconds (default 0)
  * @property {number | null} trimOut - Trim end offset in seconds from start; null = no trim
  * @property {string}        [name] - Optional human-readable display name
+ * @property {WsCue[]}       [cues] - Optional timed speech/subtitle cues
+ */
+
+/**
+ * A timed speech/subtitle cue nested inside a ws-video or ws-audio element.
+ * Non-rendered metadata — consumed by analysis services, AI agents, and
+ * accessibility tools. Timestamps are relative to the source media file
+ * (aligned with trimIn/trimOut), not the scene timeline.
+ * @typedef {Object} WsCue
+ * @property {number}  begin   - Start time within the source media (seconds)
+ * @property {number}  end     - End time within the source media (seconds)
+ * @property {string}  text    - Speech/subtitle text content
+ * @property {string}  [speaker] - Optional ws-character id (links to scene.cast)
  */
 
 /**

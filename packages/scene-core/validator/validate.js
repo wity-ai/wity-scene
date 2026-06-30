@@ -148,6 +148,13 @@ function validateVideo(el, path, errors, warnings) {
     errors.push(`${path}: trim-out must be non-negative or null`);
   }
   if (typeof el.muted !== 'boolean') errors.push(`${path}: muted must be a boolean`);
+  if (el.cues !== undefined) {
+    if (!Array.isArray(el.cues)) {
+      errors.push(`${path}: cues must be an array`);
+    } else {
+      validateCues(el.cues, path, errors, warnings);
+    }
+  }
 }
 
 /** @param {import('../schema/types.js').WsAudio} el @param {string} path */
@@ -170,6 +177,35 @@ function validateAudio(el, path, errors, warnings) {
   }
   if (el.name !== undefined && typeof el.name !== 'string') {
     errors.push(`${path}: name must be a string`);
+  }
+  if (el.cues !== undefined) {
+    if (!Array.isArray(el.cues)) {
+      errors.push(`${path}: cues must be an array`);
+    } else {
+      validateCues(el.cues, path, errors, warnings);
+    }
+  }
+}
+
+// ─── Cue validator ───────────────────────────────────────────────────────────
+
+/**
+ * @param {import('../schema/types.js').WsCue[]} cues
+ * @param {string} path
+ * @param {string[]} errors
+ * @param {string[]} warnings
+ */
+function validateCues(cues, path, errors, warnings) {
+  for (let i = 0; i < cues.length; i++) {
+    const cue = cues[i];
+    const cPath = `${path}.cues[${i}]`;
+    if (!isNonNegative(cue.begin)) errors.push(`${cPath}: begin must be a non-negative number`);
+    if (!isNonNegative(cue.end))   errors.push(`${cPath}: end must be a non-negative number`);
+    if (cue.end <= cue.begin)      warnings.push(`${cPath}: end (${cue.end}) is not after begin (${cue.begin})`);
+    if (typeof cue.text !== 'string') errors.push(`${cPath}: text must be a string`);
+    if (cue.speaker !== undefined && typeof cue.speaker !== 'string') {
+      errors.push(`${cPath}: speaker must be a string`);
+    }
   }
 }
 

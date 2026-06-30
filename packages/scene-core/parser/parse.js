@@ -110,6 +110,29 @@ function nextId(tag) {
   return `${tag}-${++_elementCounter}`;
 }
 
+// ─── Cue parser ──────────────────────────────────────────────────────────────
+
+/**
+ * Parse ws-cue children from a ws-video or ws-audio element.
+ * Returns undefined (not an empty array) when no cues are present,
+ * so the field is omitted from the object entirely.
+ * @param {Element} parentEl
+ * @returns {import('../schema/types.js').WsCue[] | undefined}
+ */
+function parseCues(parentEl) {
+  const cues = [];
+  for (const child of parentEl.children) {
+    if (child.tagName !== 'ws-cue') continue;
+    cues.push({
+      begin:   numAttr(child, 'begin', 0),
+      end:     numAttr(child, 'end', 0),
+      text:    child.textContent?.trim() ?? '',
+      ...(child.hasAttribute('speaker') ? { speaker: attr(child, 'speaker') } : {}),
+    });
+  }
+  return cues.length > 0 ? cues : undefined;
+}
+
 // ─── Element parsers ─────────────────────────────────────────────────────────
 
 /**
@@ -179,6 +202,7 @@ function parseImage(el) {
 
 /** @param {Element} el @returns {import('../schema/types.js').WsVideo} */
 function parseVideo(el) {
+  const cues = parseCues(el);
   return {
     ...parseElementBase(el),
     tag:     'ws-video',
@@ -190,11 +214,13 @@ function parseVideo(el) {
     trimIn:  numAttr(el, 'trim-in', 0),
     trimOut: el.hasAttribute('trim-out') ? numAttr(el, 'trim-out', null) : null,
     muted:   boolAttr(el, 'muted', false),
+    ...(cues ? { cues } : {}),
   };
 }
 
 /** @param {Element} el @returns {import('../schema/types.js').WsAudio} */
 function parseAudio(el) {
+  const cues = parseCues(el);
   return {
     tag:     'ws-audio',
     id:      attr(el, 'id') || nextId('ws-audio'),
@@ -206,6 +232,7 @@ function parseAudio(el) {
     trimIn:  numAttr(el, 'trim-in', 0),
     trimOut: el.hasAttribute('trim-out') ? numAttr(el, 'trim-out', null) : null,
     ...(el.hasAttribute('name') ? { name: attr(el, 'name') } : {}),
+    ...(cues ? { cues } : {}),
   };
 }
 

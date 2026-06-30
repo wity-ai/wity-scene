@@ -120,6 +120,10 @@ function serializeVideo(el, depth) {
     attrib('trim-out', el.trimOut  ?? undefined),
     attrib('muted',    el.muted,   false),
   ].join('');
+  if (el.cues?.length) {
+    const cuesXml = serializeCues(el.cues, depth + 1);
+    return `${ind(depth)}<ws-video${attrs}>\n${cuesXml}\n${ind(depth)}</ws-video>`;
+  }
   return `${ind(depth)}<ws-video${attrs} />`;
 }
 
@@ -136,6 +140,10 @@ function serializeAudio(el, depth) {
     attrib('trim-out', el.trimOut ?? undefined),
     attrib('name',     el.name   ?? undefined),
   ].join('');
+  if (el.cues?.length) {
+    const cuesXml = serializeCues(el.cues, depth + 1);
+    return `${ind(depth)}<ws-audio${attrs}>\n${cuesXml}\n${ind(depth)}</ws-audio>`;
+  }
   return `${ind(depth)}<ws-audio${attrs} />`;
 }
 
@@ -149,6 +157,28 @@ function serializeElement(el, depth) {
     case 'ws-audio': return serializeAudio(el, depth);
     default:         return '';
   }
+}
+
+// ─── Cue serializer ──────────────────────────────────────────────────────────
+
+/**
+ * Serialize an array of WsCue objects as ws-cue children.
+ * @param {import('../schema/types.js').WsCue[]} cues
+ * @param {number} depth
+ * @returns {string}
+ */
+function serializeCues(cues, depth) {
+  return cues.map((cue) => {
+    const attrs = [
+      attrib('begin',   cue.begin),
+      attrib('end',     cue.end),
+      attrib('speaker', cue.speaker ?? undefined),
+    ].join('');
+    if (!cue.text) {
+      return `${ind(depth)}<ws-cue${attrs} />`;
+    }
+    return `${ind(depth)}<ws-cue${attrs}>${escapeText(cue.text)}</ws-cue>`;
+  }).join('\n');
 }
 
 // ─── Cast serializer ──────────────────────────────────────────────────────────
