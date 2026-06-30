@@ -1,0 +1,16 @@
+{
+  "name": "wity-scene-lambda",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "handler.js",
+  "description": "AWS Lambda wrapper for @wity/scene-to-video",
+  "dependencies": {
+    "@wity/scene-to-video": "*",
+    "@wity/scene-core": "*",
+    "@aws-sdk/client-s3": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

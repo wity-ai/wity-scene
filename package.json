@@ -18,7 +18,7 @@
     "build": "npm run build -w packages/scene-core && npm run build -w packages/scene-headless && npm run build -w packages/scene-player",
     "build:scene-to-video": "echo 'scene-to-video is pure ESM, no build step needed'",
     "test:scene-to-video": "npm test -w packages/scene-to-video",
-    "deploy:lambda": "bash deployments/lambda/deploy.sh",
+    "deploy:lambda": "bash deployments/scene-to-video-lambda/deploy.sh",
     "deploy:replicate": "bash deployments/replicate/deploy.sh",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",

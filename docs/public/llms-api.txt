@@ -36,12 +36,22 @@ import { parse, evaluate, serialize, validate } from '@wity/scene';
 
 ---
 
-## witySceneRender — gateway Lambda (PUBLIC ENTRY POINT)
+## Rendering a scene to video
 
-Single entry point for all scene rendering. Do NOT call witySceneToVideo or witySceneCompose directly — call witySceneRender and let it route internally.
+`witySceneRender` is the single entry point for all scene rendering. Send your scene XML — routing to the correct internal pipeline is automatic. There are no other services to call.
+
+### Input
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `sceneXml` | string | required | The `<wity-scene>` XML document |
+| `outputFormat` | string | `"mp4"` | Output format (extensible) |
+| `options.fps` | number | `30` | Output frame rate |
+| `options.sceneWidth` | number | `1280` | Canvas width in pixels |
+| `options.sceneHeight` | number | `720` | Canvas height in pixels |
+| `options.fontManifest` | object | `{}` | Custom fonts: `{ "FontName": "https://url/to/font.ttf" }` |
 
 ```json
-// Input
 {
   "sceneXml":      "<wity-scene>...</wity-scene>",
   "outputFormat":  "mp4",
@@ -52,21 +62,27 @@ Single entry point for all scene rendering. Do NOT call witySceneToVideo or wity
     "fontManifest": {}
   }
 }
+```
 
-// Response
+### Output
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | string | Public URL of the rendered video |
+| `fileSize` | number | Output file size in bytes |
+| `pipeline` | string[] | Which internal stages ran (for observability) |
+
+```json
 { "url": "https://...", "fileSize": 9876543, "pipeline": ["witySceneToVideo", "witySceneCompose"] }
 ```
 
-Routing (internal, automatic):
-- graphics-only (ws-rect/ws-text/ws-image)      → witySceneToVideo
-- mixed (graphics + ws-video/ws-audio)           → witySceneToVideo → witySceneCompose
-- media-only (ws-video/ws-audio, no graphics)    → witySceneCompose (graphicsMp4Url: null)
+### Routing (automatic)
 
-Lambda config: 512 MB / 660 s / Node.js 20 / no FFmpeg layer
-Env vars: SCENE_TO_VIDEO_FUNCTION (default: witySceneToVideo), SCENE_COMPOSE_FUNCTION (default: witySceneCompose)
-IAM: execution role needs lambda:InvokeFunction on both downstream Lambdas.
+The gateway inspects your scene and picks the right pipeline — you do not choose:
 
-Extensible: add outputFormat "pdf" → add witySceneToPdf Lambda + one entry in PIPELINE_REGISTRY in handler.js.
+- Graphics only (`ws-rect`/`ws-text`/`ws-image`) → graphics compilation only
+- Mixed (graphics + `ws-video`/`ws-audio`) → graphics compilation → full compositing
+- Media only (`ws-video`/`ws-audio`, no graphics) → full compositing only
 
 ---
 
@@ -316,6 +332,7 @@ MEDIA_FIT_VALUES   // ['cover', 'contain', 'fill', 'none']
   animateIn:  AnimateValue,
   animateOut: AnimateValue,
   animateDur: number,            // seconds (default 0.4)
+  name?:      string,            // optional human-readable display name
 }
 ```
 
@@ -391,6 +408,7 @@ WsElementBase & {
   loop:    boolean,
   trimIn:  number,
   trimOut: number | null,
+  name?:   string,              // optional human-readable display name
 }
 ```
 
@@ -496,6 +514,7 @@ WsElementBase & {
 | animate-in   | none |
 | animate-out  | none |
 | animate-dur  | 0.4 |
+| name         | (none) |
 
 ### `<ws-text>` attributes
 
@@ -555,6 +574,7 @@ WsElementBase & {
 | loop      | false |
 | trim-in   | 0 |
 | trim-out  | (none) |
+| name      | (none) |
 
 ### `<ws-character>` attributes (inside `<ws-cast>`)
 

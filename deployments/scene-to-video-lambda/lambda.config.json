@@ -1,0 +1,18 @@
+{
+  "functionName": "witySceneToVideo",
+  "role": "arn:aws:iam::550622170137:role/service-role/mediaMuxer-role-smm1wdy1",
+  "region": "ap-south-1",
+  "runtime": "nodejs20.x",
+  "handler": "handler.handler",
+  "architecture": "x86_64",
+  "memorySize": 3008,
+  "timeout": 300,
+  "ephemeralStorage": 4096,
+  "layers": [
+    "arn:aws:lambda:ap-south-1:175033217214:layer:ffmpeg:1"
+  ],
+  "environment": {
+    "OUTPUT_BUCKET": "wity-user-generated-content",
+    "OUTPUT_PREFIX": "scene-compiled/"
+  }
+}

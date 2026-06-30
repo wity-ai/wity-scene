@@ -1,0 +1,33 @@
+{
+  "name": "@wity/scene-to-video",
+  "version": "1.0.0",
+  "description": "Server-side compiler for wity-scene documents. Renders a <wity-scene> XML to MP4 using node-canvas (Cairo) + FFmpeg. Node.js / Lambda / container only — not browser-compatible.",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": ["index.js", "src"],
+  "scripts": {
+    "test": "node test/smoke.js"
+  },
+  "keywords": ["scene-graph", "compiler", "video", "canvas", "ffmpeg", "server"],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@wity/scene-core": ">=1.0.0"
+  },
+  "devDependencies": {
+    "@wity/scene-core": "*"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "^0.9.0",
+    "@napi-rs/canvas": "^0.1.0",
+    "fluent-ffmpeg": "^2.1.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

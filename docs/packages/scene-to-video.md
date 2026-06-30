@@ -98,7 +98,7 @@ And returns:
 { "url": "https://...", "fileSize": 1234567 }
 ```
 
-See [`deployments/lambda/`](https://github.com/wity-ai/wity-scene/tree/master/deployments/lambda) for the handler and config.
+See [`deployments/scene-to-video-lambda/`](https://github.com/wity-ai/wity-scene/tree/master/deployments/scene-to-video-lambda) for the handler and config.
 
 | Config | Value |
 |--------|-------|

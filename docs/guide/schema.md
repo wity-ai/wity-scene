@@ -53,6 +53,7 @@ Visual elements (`ws-text`, `ws-rect`, `ws-image`, `ws-video`) share all of thes
 | `animate-in`   | enum        | `none`     | Entrance animation |
 | `animate-out`  | enum        | `none`     | Exit animation |
 | `animate-dur`  | number      | `0.4`      | Anim duration in seconds |
+| `name`         | string      | none       | Optional human-readable display name |
 
 ### Anchor values
 
@@ -178,6 +179,7 @@ A temporal audio track element — lives inside a `ws-layer` but has no visual o
 | `loop`     | boolean | `false`  | Loop the audio |
 | `trim-in`  | number  | `0`      | Start offset within the source file (seconds) |
 | `trim-out` | number  | none     | End offset within the source file (seconds); omit = play to end |
+| `name`     | string  | none     | Optional human-readable display name |
 
 ---
 

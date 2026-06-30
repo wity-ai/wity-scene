@@ -145,7 +145,7 @@ All visual elements (`WsText`, `WsRect`, `WsImage`, `WsVideo`) share `WsElementB
 
 ```js
 {
-  id, x, y, anchor, begin, dur, z, opacity, animateIn, animateOut, animateDur
+  id, x, y, anchor, begin, dur, z, opacity, animateIn, animateOut, animateDur, name?
 }
 ```
 
@@ -180,6 +180,7 @@ WsElementBase & {
   loop:    boolean,
   trimIn:  number,
   trimOut: number | null,
+  name?:   string,              // optional human-readable display name
 }
 ```
 

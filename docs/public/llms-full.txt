@@ -112,6 +112,7 @@ WityScene
 | animate-in    | animateIn   | none       | entrance animation |
 | animate-out   | animateOut  | none       | exit animation |
 | animate-dur   | animateDur  | 0.4        | anim duration seconds |
+| name          | name        | (none)     | optional human-readable display name |
 
 #### anchor values
 
@@ -226,6 +227,7 @@ A temporal audio element — lives inside a ws-layer but has no visual output an
 | loop          | loop        | false    | Loop the audio |
 | trim-in       | trimIn      | 0        | Start offset within source file (seconds) |
 | trim-out      | trimOut     | (none)   | End offset within source file |
+| name          | name        | (none)   | Optional human-readable display name |
 
 ### `<ws-cast>` and `<ws-character>`
 
@@ -380,14 +382,14 @@ resolveUnit(80, 0)         // 80
 
 ### WsElement = WsText | WsRect | WsImage | WsVideo | WsAudio
 
-Visual elements share WsElementBase: `{ id, x, y, anchor, begin, dur, z, opacity, animateIn, animateOut, animateDur }`
+Visual elements share WsElementBase: `{ id, x, y, anchor, begin, dur, z, opacity, animateIn, animateOut, animateDur, name? }`
 
 ```js
 WsText:  WsElementBase & { tag: 'ws-text',  content, fontSize, fontFamily, fontWeight, color, textAlign, lineHeight, maxWidth, letterSpacing }
 WsRect:  WsElementBase & { tag: 'ws-rect',  width, height, fill, stroke, strokeWidth, rx }
 WsImage: WsElementBase & { tag: 'ws-image', src, width, height, fit }
 WsVideo: WsElementBase & { tag: 'ws-video', src, width, height, fit, volume, trimIn, trimOut, muted }
-WsAudio: { tag: 'ws-audio', id, begin, dur, src, volume, loop, trimIn, trimOut }
+WsAudio: { tag: 'ws-audio', id, begin, dur, src, volume, loop, trimIn, trimOut, name? }
 ```
 
 ### WsCharacter
@@ -529,9 +531,56 @@ for (let i = 0; i < frames; i++) {
 
 ---
 
-## SERVER-SIDE VIDEO PIPELINE
+## RENDERING A SCENE TO VIDEO
 
-Two-step pipeline for producing a final composited MP4 from a wity-scene document:
+`witySceneRender` is the single entry point for all scene rendering. Send your scene XML — routing to the correct internal pipeline is automatic. There are no other services to call.
+
+### Input
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `sceneXml` | string | required | The `<wity-scene>` XML document |
+| `outputFormat` | string | `"mp4"` | Output format (extensible) |
+| `options.fps` | number | `30` | Output frame rate |
+| `options.sceneWidth` | number | `1280` | Canvas width in pixels |
+| `options.sceneHeight` | number | `720` | Canvas height in pixels |
+| `options.fontManifest` | object | `{}` | Custom fonts: `{ "FontName": "https://url/to/font.ttf" }` |
+
+```json
+{
+  "sceneXml":      "<wity-scene>...</wity-scene>",
+  "outputFormat":  "mp4",
+  "options": { "fps": 30, "sceneWidth": 1920, "sceneHeight": 1080, "fontManifest": {} }
+}
+```
+
+### Output
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | string | Public URL of the rendered video |
+| `fileSize` | number | Output file size in bytes |
+| `pipeline` | string[] | Which internal stages ran (for observability) |
+
+```json
+{ "url": "https://...", "fileSize": 9876543, "pipeline": ["witySceneToVideo", "witySceneCompose"] }
+```
+
+### Routing (automatic)
+
+The gateway inspects your scene and picks the right pipeline — you do not choose:
+
+- Graphics only (`ws-rect`/`ws-text`/`ws-image`) → graphics compilation only
+- Mixed (graphics + `ws-video`/`ws-audio`) → graphics compilation → full compositing
+- Media only (`ws-video`/`ws-audio`, no graphics) → full compositing only
+
+Extensible: add a new `outputFormat` (e.g. `"pdf"`) by deploying a new backend service — no changes to existing infrastructure.
+
+---
+
+## SERVER-SIDE PIPELINE INTERNALS
+
+Two-step pipeline under the hood (managed by `witySceneRender` — clients do not orchestrate this):
 
 ```
 sceneXml
@@ -546,30 +595,7 @@ sceneXml
             → returns: { url, fileSize }
 ```
 
-Both steps receive the **same sceneXml**. Step 2 re-parses independently to extract ws-video/ws-audio. `graphicsMp4Url` is optional — pass null if the scene has no graphic elements.
-
-### witySceneRender — gateway Lambda (PUBLIC ENTRY POINT)
-
-Single public entry point. Callers send one request and receive one URL. Internal routing is automatic.
-
-```
-caller → witySceneRender
-              │ parse + detect content
-              ├─ hasGraphics? → witySceneToVideo → graphicsMp4Url
-              └─ hasMedia?    → witySceneCompose(graphicsMp4Url | null) → final URL
-```
-
-Input: `{ sceneXml, outputFormat?: "mp4", options?: { fps?, sceneWidth?, sceneHeight?, fontManifest? } }`
-Response: `{ url, fileSize, pipeline: string[] }`
-Lambda: 512 MB / 660 s / no FFmpeg layer
-Env: SCENE_TO_VIDEO_FUNCTION, SCENE_COMPOSE_FUNCTION
-
-Routing table:
-- `ws-rect/ws-text/ws-image` only → witySceneToVideo → done
-- graphics + `ws-video/ws-audio` → witySceneToVideo → witySceneCompose
-- `ws-video/ws-audio` only (no graphics) → witySceneCompose (graphicsMp4Url: null)
-
-Extensible via PIPELINE_REGISTRY in handler.js — add outputFormat "pdf" without touching any existing Lambda.
+Both steps receive the **same sceneXml**. Step 2 re-parses independently to extract ws-video/ws-audio. `graphicsMp4Url` is optional — null if the scene has no graphic elements.
 
 ---
 
