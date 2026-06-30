@@ -5,7 +5,8 @@
   "type": "module",
   "main": "./index.js",
   "exports": {
-    ".": "./index.js"
+    ".": "./index.js",
+    "./src/downloader.js": "./src/downloader.js"
   },
   "files": ["index.js", "src"],
   "keywords": ["scene-graph", "compose", "ffmpeg", "filter_complex", "video", "server"],

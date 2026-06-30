@@ -1,0 +1,17 @@
+{
+  "name": "@wity/audio-profile",
+  "version": "1.0.0",
+  "description": "Audio loudness profile analyzer for wity-scene documents. Decodes media via FFmpeg and measures RMS loudness over time.",
+  "type": "module",
+  "main": "./index.js",
+  "keywords": ["scene-graph", "audio", "loudness", "rms", "ffmpeg", "analysis"],
+  "license": "MIT",
+  "dependencies": {
+    "@wity/scene-core": "*",
+    "@wity/scene-compose": "*",
+    "fluent-ffmpeg": "^2.1.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
