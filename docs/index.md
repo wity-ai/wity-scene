@@ -41,7 +41,7 @@ A spatial scene-graph format for rendering layered visual overlays — title car
 | [`@wity/scene-player`](/packages/scene-player) | `HeadlessPlayer` — drives `evaluate()` at playback rate via RAF | Browser + Node.js |
 | [`@wity/scene-to-video`](/packages/scene-to-video) | Graphics compiler — ws-rect/ws-text/ws-image → MP4 via node-canvas + FFmpeg | Node.js / Lambda |
 | [`@wity/scene-compose`](/packages/scene-compose) | Full compositor — ws-video + ws-audio + graphics overlay → final MP4 | Node.js / Lambda |
-| [`@wity/scene`](/packages/scene) | Convenience re-export of scene-core | Browser + Node.js |
+| [`@wity/scene`](/packages/scene-core) | Convenience re-export of scene-core | Browser + Node.js |
 
 ## Quick start
 
