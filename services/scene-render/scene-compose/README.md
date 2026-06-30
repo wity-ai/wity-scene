@@ -75,4 +75,4 @@ When the scene has no graphic elements, `graphicsMp4Url` is `null` and this Lamb
 
 ## Package
 
-Wraps [`@wity/scene-compose`](../../packages/scene-compose) -- the `compose()` function. See that package for compositing internals.
+Wraps [`@wity/scene-compose`](../../../packages/scene-compose) -- the `compose()` function. See that package for compositing internals.

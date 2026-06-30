@@ -70,7 +70,7 @@ witySceneRender (gateway)
 ## Deploy
 
 ```bash
-./deployments/scene-to-video-lambda/deploy.sh
+./services/scene-render/scene-to-video/deploy.sh
 # or from repo root:
 npm run deploy:lambda
 ```
@@ -79,4 +79,4 @@ Requires: `aws-cli` (profile: `lambda-devops`), `jq`, `node`, `npm`.
 
 ## Package
 
-Wraps [`@wity/scene-to-video`](../../packages/scene-to-video) -- the `compile()` function. See that package for rendering internals.
+Wraps [`@wity/scene-to-video`](../../../packages/scene-to-video) -- the `compile()` function. See that package for rendering internals.

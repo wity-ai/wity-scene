@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # deploy.sh — Build and deploy @wity/scene-to-video to AWS Lambda
 #
-# Usage:  ./deployments/scene-to-video-lambda/deploy.sh
+# Usage:  ./services/scene-render/scene-to-video/deploy.sh
 #         (can be run from any directory)
 #
 # Requires: aws-cli (profile: lambda-devops), jq, node, npm

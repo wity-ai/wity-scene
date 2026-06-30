@@ -122,7 +122,7 @@ And returns:
 
 `graphicsMp4Url` is optional — omit it when the scene contains no graphic elements.
 
-See [`deployments/scene-compose-lambda/`](https://github.com/wity-ai/wity-scene/tree/master/deployments/scene-compose-lambda) for the handler and config.
+See [`services/scene-render/scene-compose/`](https://github.com/wity-ai/wity-scene/tree/master/services/scene-render/scene-compose) for the handler and config.
 
 | Config | Value |
 |--------|-------|
